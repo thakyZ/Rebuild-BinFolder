@@ -41,6 +41,10 @@ namespace Rebuild_BinFolder {
       if (!IsAdministrator) {
         Registry.CurrentUser.CreateSubKey(subKey)?.SetValue("Path", newPath, RegistryValueKind.ExpandString);
       } else {
+        if (Registry.CurrentUser.OpenSubKey($"SYSTEM\\CurrentControlSet\\Control\\Session Manager\\{subKey}")?.GetValue("Path") != null
+            && Registry.CurrentUser.OpenSubKey($"SYSTEM\\CurrentControlSet\\Control\\Session Manager\\{subKey}")?.GetValueKind("Path") != RegistryValueKind.ExpandString) {
+          Registry.CurrentUser.CreateSubKey($"SYSTEM\\CurrentControlSet\\Control\\Session Manager\\{subKey}")?.DeleteValue("Path");
+        }
         Registry.CurrentUser.CreateSubKey($"SYSTEM\\CurrentControlSet\\Control\\Session Manager\\{subKey}")?.SetValue("Path", newPath, RegistryValueKind.ExpandString);
         Registry.CurrentUser.CreateSubKey($"SYSTEM\\CurrentControlSet\\Control\\Session Manager\\{subKey}")?.SetValue("ARPOG_LIST", auxPath, RegistryValueKind.ExpandString);
         Registry.CurrentUser.CreateSubKey($"SYSTEM\\CurrentControlSet\\Control\\Session Manager\\{subKey}")?.SetValue("ARPOG_DIR", config.GlobalRoot, RegistryValueKind.ExpandString);
