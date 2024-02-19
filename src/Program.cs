@@ -1,130 +1,108 @@
-﻿using System;
-using System.Diagnostics.Metrics;
-using System.Diagnostics.Tracing;
-using System.IO;
-using System.Security.Principal;
+﻿using System.Diagnostics;
 
-using Microsoft.Win32;
+using Rebuild_BinFolder.Configuration;
+using Rebuild_BinFolder.Exceptions;
+using Rebuild_BinFolder.Helpers;
 
-using static System.Collections.Specialized.BitVector32;
+namespace Rebuild_BinFolder;
 
-namespace Rebuild_BinFolder {
-  public class Program {
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-    internal static Config config;
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+public class Program {
+  public static string? PathVariable {
+    get;
+    private set;
+  } = string.Empty;
 
-    private static bool IsAdministrator {
-      get {
-        var identity = WindowsIdentity.GetCurrent();
-        var principal = new WindowsPrincipal(identity);
-        return principal.IsInRole(WindowsBuiltInRole.Administrator);
-      }
+  protected Program() {
+    Trace.WriteLine("Initializing Program class.");
+  }
+
+  public static void Startup() {
+    try {
+      var config = Config.Load(GetConfigPath);
+      // Singletons.Register(config);
+      _ = new Services(config);
+    } catch (Exception exception) {
+      Log.Error(exception, "Failed to load configuration file.");
+      Environment.Exit(1);
     }
 
-#pragma warning disable CS8603 // Possible null reference return.
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0046:Convert to conditional expression", Justification = "<Pending>")]
-    private static string GetPathVariable() {
-      string subKey = "Environment";
-      if (!IsAdministrator) {
-        return Registry.CurrentUser.OpenSubKey(subKey)?.GetValue("Path", "<NONE_MISSING>", RegistryValueOptions.DoNotExpandEnvironmentNames).ToString();
-      } else {
-        return Registry.LocalMachine.OpenSubKey($"SYSTEM\\CurrentControlSet\\Control\\Session Manager\\{subKey}")?.GetValue("Path", "<NONE_MISSING>", RegistryValueOptions.DoNotExpandEnvironmentNames).ToString();
-      }
-    }
-#pragma warning restore CS8603 // Possible null reference return.
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
+    // Singletons.Register(new Arguments());
+    // Singletons.Register(new Log());
+  }
 
-    private static void SetPathVariable(string newPath, string auxPath = "") {
-      string subKey = "Environment";
-      if (!IsAdministrator) {
-        Registry.CurrentUser.CreateSubKey(subKey)?.SetValue("Path", newPath, RegistryValueKind.ExpandString);
-      } else {
-        if (Registry.CurrentUser.OpenSubKey($"SYSTEM\\CurrentControlSet\\Control\\Session Manager\\{subKey}")?.GetValue("Path") != null
-            && Registry.CurrentUser.OpenSubKey($"SYSTEM\\CurrentControlSet\\Control\\Session Manager\\{subKey}")?.GetValueKind("Path") != RegistryValueKind.ExpandString) {
-          Registry.CurrentUser.CreateSubKey($"SYSTEM\\CurrentControlSet\\Control\\Session Manager\\{subKey}")?.DeleteValue("Path");
-        }
-        Registry.CurrentUser.CreateSubKey($"SYSTEM\\CurrentControlSet\\Control\\Session Manager\\{subKey}")?.SetValue("Path", newPath, RegistryValueKind.ExpandString);
-        Registry.CurrentUser.CreateSubKey($"SYSTEM\\CurrentControlSet\\Control\\Session Manager\\{subKey}")?.SetValue("ARPOG_LIST", auxPath, RegistryValueKind.ExpandString);
-        Registry.CurrentUser.CreateSubKey($"SYSTEM\\CurrentControlSet\\Control\\Session Manager\\{subKey}")?.SetValue("ARPOG_DIR", config.GlobalRoot, RegistryValueKind.ExpandString);
-      }
+  public static void Main(string[] args) {
+    Log.ResetLogFile();
+
+    try {
+      Startup();
+    } catch (Exception e) {
+      Log.Error(e, "Settings were corrupted, resetting");
+      // File.Delete(GetConfigPath);
+      // Startup();
+      Environment.Exit(1);
     }
 
-    public static string PathVariable {
-      get;
-      private set;
-    } = "";
+    // Singletons.Get<Arguments>().HandleArguments(args, out Dictionary<string, bool> output);
+    Services.Arguments.HandleArguments(args, out Dictionary<string, bool> output);
 
-    public static string HelpMessage {
-      get;
-    } = "<Help Message>";
+    var notQuick = !output["isQuick"];
 
-    public static void Main(string[] args) {
-      Log.ResetLogFile();
+    if (!output["noHelp"]) {
       try {
-        SetupSettings();
-      } catch (Exception e) {
-        Log.Error(e, "Settings were corrupted, resetting");
-        File.Delete(GetConfigPath);
-        SetupSettings();
+        PathVariable = RegHandler.GetPathVariable();
+      } catch (Exception exception) {
+        Log.Error(exception, "Failed to get path variable.");
+        Environment.Exit(1);
       }
-      var noHelp = false;
-      var notQuick = true;
-      if (args.Length > 0) {
-        for (int i = 0; i < args.Length; i++) {
-          if (string.Equals(args[i], "-help", StringComparison.OrdinalIgnoreCase) || string.Equals(args[i], "--help", StringComparison.OrdinalIgnoreCase) || string.Equals(args[i], "-?", StringComparison.OrdinalIgnoreCase) || string.Equals(args[i], "/?", StringComparison.OrdinalIgnoreCase)) {
-            Log.Info(HelpMessage);
-            noHelp = true;
-          }
-          if (string.Equals(args[i], "-quick", StringComparison.OrdinalIgnoreCase) || string.Equals(args[i], "--quick", StringComparison.OrdinalIgnoreCase)) {
-            notQuick = false;
-          }
-        }
-      }
-      if (!noHelp) {
-        PathVariable = GetPathVariable();
-        var handlePath = new HandlePaths(PathVariable, IsAdministrator);
-        Log.Info($"OldPath: {handlePath.OldPath}");
-        Log.Info($"NewPath: {handlePath.NewPath}");
-        Log.Info($"AuxPath: {handlePath.AuxPath}");
-        var confirmed = GetConfirmation(notQuick, Console.GetCursorPosition());
-        if (confirmed) {
-          SetPathVariable(handlePath.NewPath, handlePath.AuxPath);
-        }
-      }
-    }
-    private static void SetupSettings() => config = Config.Load(GetConfigPath);
-    private static string GetConfigPath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, $"config.json");
 
-    private static bool GetConfirmation(bool check, (int left, int top) cursor) {
-      var donePrompting = false;
-      var confirmed = true;
-      if (check) {
-        do {
-          var message = $"Do you want to replace these variables? [Y/n] ";
-          Console.SetCursorPosition(cursor.left, cursor.top);
-          Console.Write(new string(' ', Console.WindowWidth));
-          Console.SetCursorPosition(cursor.left, cursor.top);
-          Console.WriteLine(message);
-          Console.SetCursorPosition(cursor.left + message.Length, cursor.top);
-          var read = Convert.ToChar(Console.Read()).ToString();
-          switch (read) {
-            case "Y":
-              donePrompting = true;
-              confirmed = true;
-              break;
-            case "n":
-            case "N":
-              donePrompting = true;
-              confirmed = false;
-              break;
-            default:
-              break;
-          }
-        } while (!donePrompting);
+      if (PathVariable is null) {
+        Log.Error("Path variable returned null.");
+        Environment.Exit(1);
       }
-      return confirmed;
+
+      var handlePath = new HandlePaths(PathVariable, RegHandler.IsAdministrator);
+      Log.Changes("OldPath:", handlePath.GetOldPath());
+      Log.Changes("NewPath:", handlePath.GetNewPath());
+      if (handlePath.GetAuxPath() != null && RegHandler.IsAdministrator) {
+        Log.Changes("AuxPath:", $"{handlePath.GetAuxPath()}");
+      } else if (handlePath.GetAuxPath() == null && RegHandler.IsAdministrator) {
+        throw new HandlePathNullException($"Aux path {(handlePath.GetAuxPath() == null ? "is null" : "is not null")}, {(RegHandler.IsAdministrator ? "is Administrator" : "is not Administrator")}");
+      }
+
+      if (GetConfirmation(notQuick, Console.GetCursorPosition())) {
+        RegHandler.SetPathVariable(handlePath.GetNewPath(), handlePath.GetAuxPath());
+      }
     }
+  }
+
+  private static string GetConfigPath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.json");
+
+  private static bool GetConfirmation(bool check, (int left, int top) cursor) {
+    var donePrompting = false;
+    var confirmed = true;
+    if (check) {
+      while (!donePrompting) {
+        const string message = "Do you want to replace these variables? [Y/n] ";
+
+        Console.SetCursorPosition(cursor.left, cursor.top);
+        Console.Write(new string(' ', Console.WindowWidth - message.Length));
+        Console.SetCursorPosition(cursor.left, cursor.top);
+        Console.Write(message);
+        Console.SetCursorPosition(cursor.left + message.Length, cursor.top);
+
+        string read = Console.ReadLine() ?? " ";
+
+        if (read.Equals("Y", StringComparison.Ordinal)) {
+          donePrompting = true;
+          confirmed = true;
+        } else if (read.Equals("n", StringComparison.OrdinalIgnoreCase)) {
+          donePrompting = true;
+          confirmed = false;
+        } else {
+          Console.SetCursorPosition(cursor.left, cursor.top);
+        }
+      }
+    }
+    return confirmed;
   }
 }

@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "Rebuild-BinFolder": {
+      "commandName": "Project",
+      "hotReloadEnabled": false,
+      "nativeDebugging": true
+    }
+  }
+}

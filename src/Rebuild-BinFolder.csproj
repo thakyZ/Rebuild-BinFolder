@@ -1,17 +1,100 @@
-<Project Sdk="Microsoft.NET.Sdk">
-
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net6.0-windows</TargetFramework>
+    <Company>Neko Boi Nick</Company>
+    <Authors>Neko Boi Nick</Authors>
+    <Description></Description>
+    <PackageProjectUrl>https://github.com/thakyZ/Rebuild_BinFolder</PackageProjectUrl>
+    <Copyright>MIT</Copyright>
     <RootNamespace>Rebuild_BinFolder</RootNamespace>
     <StartupObject>Rebuild_BinFolder.Program</StartupObject>
+    <Title>$(MSBuildProjectName)</Title>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Target">
+    <TargetFramework>net7.0-windows</TargetFramework>
     <PlatformTarget>x64</PlatformTarget>
-    <Nullable>enable</Nullable>
-    <BaseOutputPath>..\bin\</BaseOutputPath>
+    <Platforms>x64</Platforms>
+    <Configurations>Release;Debug</Configurations>
+    <Nullable>Enable</Nullable>
+    <GenerateDependencyFile>False</GenerateDependencyFile>
+    <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
+    <SupportedOSPlatformVersion>7.0</SupportedOSPlatformVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Build">
+    <OutputType>Exe</OutputType>
+    <AppendTargetFrameworkToOutputPath>False</AppendTargetFrameworkToOutputPath>
+    <DebugSymbols>True</DebugSymbols>
+    <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
+    <RestorePackagesWithLockFile>True</RestorePackagesWithLockFile>
+    <CopyLocalLockFileAssemblies>True</CopyLocalLockFileAssemblies>
+    <OutputPath>$(SolutionDir)\bin\</OutputPath>
+    <BaseOutputPath>$(SolutionDir)\bin\</BaseOutputPath>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Feature">
+    <AllowUnsafeBlocks>False</AllowUnsafeBlocks>
+    <Version>1.0.0.0</Version>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <AutoGenerateBindingRedirects>True</AutoGenerateBindingRedirects>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <AssemblyTitle>$(Title)</AssemblyTitle>
+    <AssemblyName>$(MSBuildProjectName)</AssemblyName>
+    <Product>$(RootNamespace)</Product>
+    <PluginVersion>$(Version)</PluginVersion>
+    <FileVersion>$(Version)</FileVersion>
+    <AssemblyVersion>$(Version)</AssemblyVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>True</Optimize>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>Prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <DebugType>Full</DebugType>
+    <Optimize>False</Optimize>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>Prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="$(SolutionDir).gitignore" CopyToOutputDirectory="Never" />
+    <Content Include="$(SolutionDir).gitattributes" CopyToOutputDirectory="Never" />
+    <EditorConfigFiles Remove="$(SolutionDir).editorconfig" />
+    <None Include="$(SolutionDir).editorconfig" Link=".editorconfig" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" Exists('$(AppData)\MSRuleSets\sonarlint.editorconfig') ">
+    <None Include="$(AppData)\MSRuleSets\sonarlint.editorconfig" Link="sonarlint.editorconfig" />
+    <EditorConfigFiles Remove="$(AppData)\MSRuleSets\sonarlint.editorconfig" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" Exists('$(AppData)\MSRuleSets\roslynator.editorconfig') ">
+    <None Include="$(AppData)\MSRuleSets\roslynator.editorconfig" Link="roslynator.editorconfig" />
+    <EditorConfigFiles Remove="$(AppData)\MSRuleSets\roslynator.editorconfig" />
+  </ItemGroup>
+
+  <Target Name="CleanOutDir" AfterTargets="Build">
+    <ItemGroup>
+      <DeleteAssemblies Include="$(TargetDir)$(AssemblyName).deps.json" />
+    </ItemGroup>
+    <Message Text="Deleting @(DeleteAssemblies)" Importance="high" />
+    <Delete Files="@(DeleteAssemblies)" />
+    <RemoveDir Directories="$(TargetDir)\ref\" />
+  </Target>
 </Project>
