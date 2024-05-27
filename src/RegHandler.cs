@@ -19,49 +19,49 @@ internal static class RegHandler {
 
   internal static string GetPathVariable() {
     if (!IsAdministrator) {
-      return Registry.CurrentUser.OpenSubKey(Constants.SubKey)?.GetValue("Path", "<NONE_MISSING>", RegistryValueOptions.DoNotExpandEnvironmentNames)?.ToString() ?? "<NONE_MISSING>";
+      return Registry.CurrentUser.OpenSubKey(Constants.SubKey)?.GetValue("FullName", "<NONE_MISSING>", RegistryValueOptions.DoNotExpandEnvironmentNames)?.ToString() ?? "<NONE_MISSING>";
     } else {
-      return Registry.LocalMachine.OpenSubKey(string.Concat(@"SYSTEM\CurrentControlSet\Control\Session Manager\", Constants.SubKey))?.GetValue("Path", "<NONE_MISSING>", RegistryValueOptions.DoNotExpandEnvironmentNames)?.ToString() ?? "<NONE_MISSING>";
+      return Registry.LocalMachine.OpenSubKey(Constants.SystemSubKeyPath)?.GetValue("FullName", "<NONE_MISSING>", RegistryValueOptions.DoNotExpandEnvironmentNames)?.ToString() ?? "<NONE_MISSING>";
     }
   }
 
   internal static void SetPathVariable(string newPath, string? auxPath = "") {
     if (!IsAdministrator) {
-      Registry.CurrentUser.CreateSubKey(Constants.SubKey)?.SetValue("Path", newPath, RegistryValueKind.ExpandString);
+      Registry.CurrentUser.CreateSubKey(Constants.SubKey)?.SetValue("FullName", newPath, RegistryValueKind.ExpandString);
     } else {
-      if (Registry.LocalMachine.OpenSubKey(string.Concat(@"SYSTEM\CurrentControlSet\Control\Session Manager\", Constants.SubKey))?.GetValue("Path") != null
-          && Registry.LocalMachine.OpenSubKey(string.Concat(@"SYSTEM\CurrentControlSet\Control\Session Manager\", Constants.SubKey))?.GetValueKind("Path") != RegistryValueKind.ExpandString) {
-        Registry.LocalMachine.CreateSubKey(string.Concat(@"SYSTEM\CurrentControlSet\Control\Session Manager\", Constants.SubKey))?.DeleteValue("Path");
+      if (Registry.LocalMachine.OpenSubKey(Constants.SystemSubKeyPath)?.GetValue("FullName") != null
+          && Registry.LocalMachine.OpenSubKey(Constants.SystemSubKeyPath)?.GetValueKind("FullName") != RegistryValueKind.ExpandString) {
+        Registry.LocalMachine.CreateSubKey(Constants.SystemSubKeyPath)?.DeleteValue("FullName");
       }
 
-      Registry.LocalMachine.CreateSubKey(string.Concat(@"SYSTEM\CurrentControlSet\Control\Session Manager\", Constants.SubKey))?.SetValue("Path", newPath, RegistryValueKind.ExpandString);
+      Registry.LocalMachine.CreateSubKey(Constants.SystemSubKeyPath)?.SetValue("FullName", newPath, RegistryValueKind.ExpandString);
 
       if (auxPath != null) {
-        Registry.LocalMachine.CreateSubKey(string.Concat(@"SYSTEM\CurrentControlSet\Control\Session Manager\", Constants.SubKey))?.SetValue(Constants.AdminProgramsList, auxPath, RegistryValueKind.ExpandString);
+        Registry.LocalMachine.CreateSubKey(Constants.SystemSubKeyPath)?.SetValue(Constants.SystemProgramsList, auxPath, RegistryValueKind.ExpandString);
       }
 
-      Registry.LocalMachine.CreateSubKey(string.Concat(@"SYSTEM\CurrentControlSet\Control\Session Manager\", Constants.SubKey))?.SetValue(Constants.AdminProgramsDirectory,  Services.Config.AdminConfig.AdminRoot, RegistryValueKind.ExpandString);
+      Registry.LocalMachine.CreateSubKey(Constants.SystemSubKeyPath)?.SetValue(Constants.SystemProgramsDirectory,  Services.Config.AdminConfig.AdminRoot, RegistryValueKind.ExpandString);
     }
   }
 
   internal static Dictionary<string, string> GetStandardVariables() {
-    Dictionary<string, string> output = new();
+    Dictionary<string, string> output = [];
     string[] keys = IsAdministrator
-      ? Registry.LocalMachine.OpenSubKey(string.Concat(@"SYSTEM\CurrentControlSet\Control\Session Manager\", Constants.SubKey))?.GetValueNames() ?? Array.Empty<string>()
-      : Registry.CurrentUser.OpenSubKey(Constants.SubKey)?.GetValueNames() ?? Array.Empty<string>();
+      ? Registry.LocalMachine.OpenSubKey(Constants.SystemSubKeyPath)?.GetValueNames() ?? []
+      : Registry.CurrentUser.OpenSubKey(Constants.UserSubKeyPath)?.GetValueNames() ?? [];
 
     foreach (string key in keys.ToList()) {
       if (string.IsNullOrEmpty(key))
         continue;
 
       if (!IsAdministrator) {
-        string value = Registry.CurrentUser.OpenSubKey(Constants.SubKey)?.GetValue(key, "<NONE_MISSING>", RegistryValueOptions.None)?.ToString() ?? "<NONE_MISSING>";
+        string value = Registry.CurrentUser.OpenSubKey(Constants.UserSubKeyPath)?.GetValue(key, "<NONE_MISSING>", RegistryValueOptions.None)?.ToString() ?? "<NONE_MISSING>";
 
         if (Path.IsPathFullyQualified(key) || Path.IsPathRooted(key)) {
           output.Add(key, value);
         }
       } else {
-        string value = Registry.LocalMachine.OpenSubKey(string.Concat(@"SYSTEM\CurrentControlSet\Control\Session Manager\", Constants.SubKey))?.GetValue(key, "<NONE_MISSING>", RegistryValueOptions.None)?.ToString() ?? "<NONE_MISSING>";
+        string value = Registry.LocalMachine.OpenSubKey(Constants.SystemSubKeyPath)?.GetValue(key, "<NONE_MISSING>", RegistryValueOptions.None)?.ToString() ?? "<NONE_MISSING>";
 
         if (Path.IsPathFullyQualified(key) || Path.IsPathRooted(key)) {
           output.Add(key, value);
@@ -72,11 +72,11 @@ internal static class RegHandler {
     return output;
   }
 
-  internal static Dictionary<Regex, string> GetStandardVariablesRegex() {
-    Dictionary<Regex, string> output = new();
+  internal static Dictionary<string, string> GetStandardVariablesRegex() {
+    Dictionary<string, string> output = [];
     string[] keys = IsAdministrator
-      ? Registry.LocalMachine.OpenSubKey(string.Concat(@"SYSTEM\CurrentControlSet\Control\Session Manager\", Constants.SubKey))?.GetValueNames() ?? Array.Empty<string>()
-      : Registry.CurrentUser.OpenSubKey(Constants.SubKey)?.GetValueNames() ?? Array.Empty<string>();
+      ? Registry.LocalMachine.OpenSubKey(Constants.SystemSubKeyPath)?.GetValueNames() ?? []
+      : Registry.CurrentUser.OpenSubKey(Constants.UserSubKeyPath)?.GetValueNames() ?? [];
 
     foreach (string key in keys.ToList()) {
       if (string.IsNullOrEmpty(key))
@@ -86,13 +86,13 @@ internal static class RegHandler {
         string value = Registry.CurrentUser.OpenSubKey(Constants.SubKey)?.GetValue(key, "<NONE_MISSING>", RegistryValueOptions.None)?.ToString() ?? "<NONE_MISSING>";
 
         if (Path.IsPathFullyQualified(key) || Path.IsPathRooted(key)) {
-          output.Add(new Regex(Regex.Escape(key)), value);
+          output.Add(key, value);
         }
       } else {
-        string value = Registry.LocalMachine.OpenSubKey(string.Concat(@"SYSTEM\CurrentControlSet\Control\Session Manager\", Constants.SubKey))?.GetValue(key, "<NONE_MISSING>", RegistryValueOptions.None)?.ToString() ?? "<NONE_MISSING>";
+        string value = Registry.LocalMachine.OpenSubKey(Constants.SystemSubKeyPath)?.GetValue(key, "<NONE_MISSING>", RegistryValueOptions.None)?.ToString() ?? "<NONE_MISSING>";
 
         if (Path.IsPathFullyQualified(key) || Path.IsPathRooted(key)) {
-          output.Add(new Regex(Regex.Escape(key)), value);
+          output.Add(key, value);
         }
       }
     }

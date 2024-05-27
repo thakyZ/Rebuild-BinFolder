@@ -1,22 +1,29 @@
-﻿using Rebuild_BinFolder.Configuration;
+﻿using System.Diagnostics.CodeAnalysis;
+
+using Microsoft.VisualStudio.TestPlatform.CoreUtilities.Helpers;
+
+using Rebuild_BinFolder.Configuration;
 using Rebuild_BinFolder.Helpers;
 
 namespace Rebuild_BinFolder;
 internal class Services {
-  internal static Config Config { get; private set; }
-  internal static Arguments Arguments { get; }
-  internal static Log Log { get; }
+  [NotNull, AllowNull]
+  private static Services? _instance;
+  private readonly Config _config;
+  private readonly Log _log;
+  private readonly Arguments _arguments;
 
-#pragma warning disable S1118 // Utility classes should not have public constructors
-  internal Services(Config config) {
-    Config = config;
-  }
-#pragma warning restore S1118 // Utility classes should not have public constructors
+  internal static Config Config => _instance._config;
+  internal static Log Log => _instance._log;
+  internal static Arguments Arguments => _instance._arguments;
 
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-  static Services() {
-    Arguments = new();
-    Log = new();
+  private Services(Config config, string[] args) {
+    _config = config;
+    _log = new();
+    _arguments = new(args);
   }
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+
+  internal static void Init(Config config, string[] args) {
+    _instance ??= new(config, args);
+  }
 }

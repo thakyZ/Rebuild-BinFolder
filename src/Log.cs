@@ -1,4 +1,6 @@
-﻿namespace Rebuild_BinFolder;
+﻿using Newtonsoft.Json;
+
+namespace Rebuild_BinFolder;
 
 internal class Log {
   private static string LogFile => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "output.log");
@@ -16,38 +18,46 @@ internal class Log {
     Console.ForegroundColor = DefaultForegroundColor;
   }
 
+  private static string LevelAbbrivation(LogLevel type) {
+    return type switch {
+      LogLevel.Verbose => "VRB",
+      LogLevel.Debug => "DBG",
+      LogLevel.Info => "INF",
+      LogLevel.Warn => "WRN",
+      LogLevel.Error => "ERR",
+      LogLevel.Fatal => "FTL",
+      _ => "UKN",
+    };
+  }
+
   private static void DefaultMessage(LogLevel type) {
     Console.Write("[");
     PushForegroundColor(ConsoleColor.DarkGray);
     Console.Write(GetDate);
     PopForegroundColor();
     Console.Write("][");
+    var abbrivation = LevelAbbrivation(type);
     switch (type) {
       case LogLevel.Verbose:
         PushForegroundColor(ConsoleColor.DarkGray);
-        Console.Write("VRB");
         break;
       case LogLevel.Debug:
         PushForegroundColor(ConsoleColor.Gray);
-        Console.Write("DBG");
         break;
       case LogLevel.Info:
         PushForegroundColor(ConsoleColor.Blue);
-        Console.Write("INF");
         break;
       case LogLevel.Warn:
         PushForegroundColor(ConsoleColor.Yellow);
-        Console.Write("WRN");
         break;
       case LogLevel.Error:
         PushForegroundColor(ConsoleColor.Red);
-        Console.Write("ERR");
         break;
       case LogLevel.Fatal:
         PushForegroundColor(ConsoleColor.DarkRed);
-        Console.Write("FTL");
         break;
     }
+    Console.Write(abbrivation);
     PopForegroundColor();
     Console.Write("] ");
   }
@@ -94,6 +104,32 @@ internal class Log {
       DefaultMessage(LogLevel.Debug);
       Console.Write($"{message}\n");
       WriteLine($"[{GetDate}][DBG] {message}");
+    }
+  }
+
+  internal static void Verbose(string message) {
+    if (Services.Config.LogLevel <= LogLevel.Verbose) {
+      DefaultMessage(LogLevel.Verbose);
+      Console.Write($"{message}\n");
+      WriteLine($"[{GetDate}][DBG] {message}");
+    }
+  }
+
+  internal static void Object(object? obj, LogLevel level = LogLevel.Verbose) {
+    if (Services.Config.LogLevel <= level) {
+      DefaultMessage(level);
+      string message = "unknown";
+      if (obj is null) {
+        message = "null";
+      } else {
+        if (obj.GetType().Name.Contains("List")) {
+          message = JsonConvert.SerializeObject(obj, Formatting.Indented);
+        } else if (obj.GetType().Name.Contains("Dictionary")) {
+          message = JsonConvert.SerializeObject(obj, Formatting.Indented);
+        }
+      }
+      Console.Write($"{message}\n");
+      WriteLine($"[{GetDate}][{LevelAbbrivation(level)}] {message}");
     }
   }
 

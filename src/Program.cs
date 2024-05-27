@@ -1,12 +1,20 @@
 ﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 using Rebuild_BinFolder.Configuration;
 using Rebuild_BinFolder.Exceptions;
-using Rebuild_BinFolder.Helpers;
+using Rebuild_BinFolder.Extensions;
+using Rebuild_BinFolder.HandlePaths;
+
+using static Rebuild_BinFolder.HandlePaths.Handler;
 
 namespace Rebuild_BinFolder;
 
 public class Program {
+  public static string? AuxiliaryPathVariable {
+    get;
+    private set;
+  } = string.Empty;
   public static string? PathVariable {
     get;
     private set;
@@ -42,35 +50,63 @@ public class Program {
       Environment.Exit(1);
     }
 
-    // Singletons.Get<Arguments>().HandleArguments(args, out Dictionary<string, bool> output);
-    Services.Arguments.HandleArguments(args, out Dictionary<string, bool> output);
+    // Singletons.Get<Arguments>().HandleArguments(args, out Dictionary<string, bool> output);\
 
-    var notQuick = !output["isQuick"];
+    var notQuick = !Services.Arguments["isQuick"];
 
-    if (!output["noHelp"]) {
+    if (!Services.Arguments["noHelp"]) {
+      var runState = RunState.None;
+
       try {
         PathVariable = RegHandler.GetPathVariable();
+        AuxiliaryPathVariable = RegHandler.GetAuxiliaryPathVariable();
       } catch (Exception exception) {
         Log.Error(exception, "Failed to get path variable.");
         Environment.Exit(1);
       }
 
+      if (!Services.Arguments["admin"]) {
+        runState |= RunState.User;
+      } else {
+        runState |= RunState.Admin;
+        if (Services.Arguments["user"]) {
+          runState |= RunState.User;
+        }
+      }
+
       if (PathVariable is null) {
-        Log.Error("Path variable returned null.");
+        Log.Error("FullName variable returned null.");
         Environment.Exit(1);
       }
 
-      var handlePath = new HandlePaths(PathVariable, RegHandler.IsAdministrator);
-      Log.Changes("OldPath:", handlePath.GetOldPath());
-      Log.Changes("NewPath:", handlePath.GetNewPath());
-      if (handlePath.GetAuxPath() != null && RegHandler.IsAdministrator) {
-        Log.Changes("AuxPath:", $"{handlePath.GetAuxPath()}");
-      } else if (handlePath.GetAuxPath() == null && RegHandler.IsAdministrator) {
-        throw new HandlePathNullException($"Aux path {(handlePath.GetAuxPath() == null ? "is null" : "is not null")}, {(RegHandler.IsAdministrator ? "is Administrator" : "is not Administrator")}");
+      var handlePath = new Handler(PathVariable, AuxiliaryPathVariable, runState);
+      var (admin, user) = handlePath.Run();
+      if (!Services.Arguments["admin"] && user is ReturnedData UserPaths) {
+        Log.Changes("OldPath:", $"{UserPaths.OldPath.PathString}");
+        Log.Changes("NewPath:", $"{UserPaths.NewPath.PathString}");
+        if (UserPaths.OldPath.AuxiliaryPath is not null && UserPaths.NewPath?.AuxiliaryPath is not null) {
+          Log.Changes("AuxPath:", $"{UserPaths.NewPath.AuxiliaryPathString}");
+        } else if (UserPaths.NewPath.AuxiliaryPath is null) {
+          throw new HandlePathNullException($"Aux path {(UserPaths.NewPath.AuxiliaryPath == null ? "is null" : "is not null")}, {(RegHandler.IsAdministrator ? "is Administrator" : "is not Administrator")}");
+        }
+        if (GetConfirmation(notQuick, Console.GetCursorPosition())) {
+          RegHandler.SetPathVariable(UserPaths.NewPath.PathString, UserPaths.NewPath.AuxiliaryPathString);
+        }
       }
-
-      if (GetConfirmation(notQuick, Console.GetCursorPosition())) {
-        RegHandler.SetPathVariable(handlePath.GetNewPath(), handlePath.GetAuxPath());
+      if (Services.Arguments["admin"] && admin is ReturnedData AdminPaths) {
+        Log.Changes("OldPath:", $"{AdminPaths.OldPath.PathString}");
+        Log.Changes("NewPath:", $"{AdminPaths.NewPath.PathString}");
+        if (AdminPaths.OldPath.AuxiliaryPath is not null && AdminPaths.NewPath.AuxiliaryPath is not null) {
+          Log.Changes("AuxPath:", $"{AdminPaths.NewPath.AuxiliaryPathString}");
+          if (GetConfirmation(notQuick, Console.GetCursorPosition())) {
+            RegHandler.SetPathVariable(AdminPaths.NewPath.PathString, AdminPaths.NewPath.AuxiliaryPathString);
+          }
+        } else if (AdminPaths.NewPath.AuxiliaryPath is null) {
+          throw new HandlePathNullException($"Aux path {(AdminPaths.NewPath.AuxiliaryPath is null ? "is null" : "is not null")}, {(RegHandler.IsAdministrator ? "is Administrator" : "is not Administrator")}");
+        }
+        if (GetConfirmation(notQuick, Console.GetCursorPosition())) {
+          RegHandler.SetPathVariable(UserPaths.NewPath.PathString, UserPaths.NewPath.AuxiliaryPathString);
+        }
       }
     }
   }

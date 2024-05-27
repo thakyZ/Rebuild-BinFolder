@@ -1,23 +1,33 @@
-﻿using Newtonsoft.Json;
+﻿using System.Runtime.InteropServices;
+
+using Newtonsoft.Json;
 
 namespace Rebuild_BinFolder.Configuration;
 
 [Serializable]
 public class ProgramPath {
-  public string Path { get; } = string.Empty;
+  public string FullName { get; } = string.Empty;
 
-  public bool Exists => Directory.Exists(Path);
+  public bool Exists => Directory.Exists(this.FullName);
 
-  public DirectoryInfo GetDirectoryInfo => new(Path);
+  public DirectoryInfo GetDirectoryInfo => new(this.FullName);
 
   [JsonConstructor]
   public ProgramPath(string path) {
-    this.Path = !path.Contains(@"\\") ? path.Replace("/", @"\\") : path;
+    this.FullName = path;
   }
 
   private ProgramPath() { }
 
   public static ProgramPath Empty => new();
 
-  public override string ToString() => Path;
+  public override string ToString() => this.FullName;
+
+  public string ToNativeString() {
+    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+      return this.FullName.Replace(@"/", @"\");
+    } else {
+      return this.FullName.Replace(@"\\", "/").Replace(@"\", "/");
+    }
+  }
 }

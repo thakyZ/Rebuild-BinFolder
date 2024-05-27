@@ -1,4 +1,6 @@
-﻿namespace Rebuild_BinFolder.Helpers;
+﻿using Microsoft.VisualStudio.TestPlatform.CoreUtilities.Helpers;
+
+namespace Rebuild_BinFolder.Helpers;
 
 internal static class ArgumentsExtension {
   internal static string FetchCommand(this List<Argument> _arguments, string arg) {
@@ -18,8 +20,8 @@ internal static class ArgumentsExtension {
   }
 
   internal static List<string> CommandNamesToPrefixes(this List<string> commandNames) {
-    string[] prefixes = new string[4] { "-!", "-!+", "--!+", "/!" };
-    List<string> output = new();
+    string[] prefixes = ["-!", "-!+", "--!+", "/!"];
+    List<string> output = [];
 
     foreach (string commandName in commandNames) {
       foreach (string prefix in prefixes) {
@@ -48,35 +50,47 @@ internal struct Argument {
 
 internal class Arguments {
   private Argument HelpArgument = new() {
-    CommandNames = new() { "-h", "-help", "--help", "-?", "/?" },
+    CommandNames = ["-h", "-help", "--help", "-?", "/?"],
     DictionaryKey = "noHelp",
     HelpMessage = "<Help Message>",
   };
 
+  private readonly IDictionary<string, string?> _passedArguments;
+
   private List<Argument> PredefinedArguments { get; }
 
-  internal Arguments() {
+  internal Arguments(string[] args) {
+    _passedArguments = CommandLineArgumentsHelper.GetArgumentsDictionary(args);
     HelpArgument.Function = () => Log.Info(HelpArgument.HelpMessage);
 
-    PredefinedArguments = new() {
+    PredefinedArguments = [
       HelpArgument,
       new Argument() {
-        CommandNames = new() { "-q", "-quick", "--quick" },
+        CommandNames = ["-q", "-quick", "--quick"],
         DictionaryKey = "notQuick",
         Function = null,
         HelpMessage = "<Help Message>"
       }
-    };
+    ];
   }
 
-  internal void HandleArguments(string[] args, out Dictionary<string, bool> output) {
-    output = new() { { "noHelp", false }, { "isQuick", false } };
-    if (args.Length == 0) {
-      return;
+  internal string? Get(string key) {
+    if (this._passedArguments.TryGetValue(key, out string? value)) {
+      return value;
     }
-
-    foreach (var arg in args) {
-      output[PredefinedArguments.FetchCommand(arg)] = true;
-    }
+    return null;
   }
+
+  internal string? GetString(string key) {
+    return this.Get(key);
+  }
+
+  internal int? GetInt(string key) {
+    if (CommandLineArgumentsHelper.TryGetIntArgFromDictionary(_passedArguments, key, out int value)) {
+      return value;
+    }
+    return null;
+  }
+
+  internal bool this[string key] => this._passedArguments.ContainsKey(key);
 }

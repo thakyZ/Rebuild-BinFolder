@@ -5,39 +5,57 @@ namespace Rebuild_BinFolder.Configuration;
 [Serializable]
 public class AdminConfig {
   [JsonProperty("admin_root")]
-  public ProgramPath AdminRoot {
+  public AuxName AdminRoot {
+    get; set;
+  }
+
+  [JsonProperty("admin_aux_list")]
+  public string AdminAuxList {
     get; set;
   }
 
   [JsonProperty("admin_programs")]
   public List<ProgramPath> AdminPrograms {
     get; set;
-  } = new();
+  } = [];
 
   [JsonProperty("force_in_admin_path")]
   public List<ProgramPath> ForceInAdminPath {
     get; set;
-  } = new();
+  } = [];
 
   [JsonProperty("custom_environment_variables")]
   public Dictionary<string, ProgramPath> CustomEnvironmentVariables {
     get; set;
-  } = new();
+  } = [];
 
   [JsonConstructor]
-  public AdminConfig(ProgramPath adminRoot, List<ProgramPath> adminPrograms, List<ProgramPath> forceInAdminPath, Dictionary<string, ProgramPath> customEnvironmentVariables) {
+  public AdminConfig(AuxName adminRoot, string adminAuxPath, List<ProgramPath> adminPrograms, List<ProgramPath> forceInAdminPath, Dictionary<string, ProgramPath> customEnvironmentVariables) {
     this.AdminRoot = adminRoot;
+    this.AdminAuxList = adminAuxPath;
     this.AdminPrograms = adminPrograms;
     this.ForceInAdminPath = forceInAdminPath;
     this.CustomEnvironmentVariables = customEnvironmentVariables;
   }
 
-  private AdminConfig() {
-    this.AdminRoot = ProgramPath.Empty;
+  public AdminConfig(AuxName adminRoot, string adminAuxPath) {
+    this.AdminAuxList = adminAuxPath;
+    this.AdminRoot = adminRoot;
   }
 
-  public AdminConfig(ProgramPath adminRoot) {
+  public AdminConfig(AuxName adminRoot) {
+    this.AdminAuxList = "APROG_LIST";
     this.AdminRoot = adminRoot;
+  }
+
+  public AdminConfig(string adminAuxPath) {
+    this.AdminAuxList = adminAuxPath;
+    this.AdminRoot = new AuxName("APROG_DIR", ProgramPath.Empty);
+  }
+
+  private AdminConfig() {
+    this.AdminAuxList = "APROG_LIST";
+    this.AdminRoot = new AuxName("APROG_DIR", ProgramPath.Empty);
   }
 
   public static AdminConfig Empty => new();

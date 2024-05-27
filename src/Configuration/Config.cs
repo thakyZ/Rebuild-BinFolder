@@ -33,10 +33,10 @@ public class Config {
   [JsonProperty("equivalents")]
   public List<Equivalent> Equivalents {
     get; set;
-  } = new();
+  } = [];
 
   [JsonProperty("user_configs")]
-  public List<UserConfig> UserConfigs { get; set; } = new();
+  public List<UserConfig> UserConfigs { get; set; } = [];
 
   [JsonProperty("admin_config")]
   public AdminConfig AdminConfig { get; set; } = AdminConfig.Empty;
@@ -52,9 +52,9 @@ public class Config {
 
   private static Config CreateDefault(string configPath) {
     Config config = new Config() {
-      UserConfigs = new() {
+      UserConfigs = [
         new UserConfig(CurrentUserSID)
-      },
+      ],
       Equivalents = Equivalent.Templates
     };
 
@@ -112,13 +112,13 @@ public class Config {
     return new Config() {
       Version = 2,
       Equivalents = config.Equivalents,
-      UserConfigs = new() {
+      UserConfigs = [
         new UserConfig(CurrentUserSID) {
-          UserPrograms = new(),
-          ForceInUserPath = new(),
-          CustomEnvironmentVariables = new()
+          UserPrograms = [],
+          ForceInUserPath = [],
+          CustomEnvironmentVariables = []
         }
-      },
+      ],
       AdminConfig = AdminConfig.Empty
     };
   }
@@ -175,7 +175,7 @@ public class Config {
   private static void SaveConfig(string configPath, Config config) {
     try {
       if (File.Exists(Path.GetFileName(configPath))) {
-        File.Copy(Path.GetFileName(configPath), string.Concat(Path.GetFileNameWithoutExtension(configPath), ".backup.json"), true);
+        File.Copy(Path.GetFileName(configPath), $"{Path.GetFileNameWithoutExtension(configPath)}.backup.json", true);
       }
     } catch (Exception exception) {
       Log.Error(exception, "Failed to backup configuration file.");

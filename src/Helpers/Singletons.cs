@@ -5,7 +5,7 @@ using Rebuild_BinFolder.Exceptions;
 namespace Rebuild_BinFolder.Helpers;
 
 internal class Singletons : IDisposable {
-  private static readonly Dictionary<Type, Func<object>> TypeInitializers = new() { };
+  private static readonly Dictionary<Type, Func<object>> TypeInitializers = [];
 
   private static readonly ConcurrentDictionary<Type, object> ActiveInstances = new();
 
