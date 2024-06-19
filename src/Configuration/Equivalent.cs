@@ -1,41 +1,36 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using System.Text.RegularExpressions;
-
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
-
+﻿#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 namespace Rebuild_BinFolder.Configuration;
 
-[Serializable]
 public class Equivalent {
-  [JsonConverter(typeof(RegexConverter))]
-  [JsonProperty("regex", NullValueHandling = NullValueHandling.Ignore)]
-  [AllowNull]
-  public Regex? Regex { get; set; }
-
-  [JsonProperty("key", NullValueHandling = NullValueHandling.Include)]
-  [AllowNull]
+  /// <summary>
+  /// TODO: Add property summary.
+  /// </summary>
   public string Key { get; set; }
 
-  [JsonProperty("token", NullValueHandling = NullValueHandling.Include)]
-  public string Token { get; set; }
+  /// <summary>
+  /// TODO: Add property summary.
+  /// </summary>
+  public string Value { get; set; }
 
-  [JsonConstructor]
-  public Equivalent(string key, string _token, Regex? _regex = null) {
-    if (_regex is not null) {
-      this.Regex = null;
-      this.Key = _regex.ToString();
-    } else {
-      this.Key = key;
-    }
-    this.Token = _token;
+  /// <summary>
+  /// TODO: Add property summary.
+  /// </summary>
+  internal static Equivalent Template => new("%APPDATA%","<userDir>/AppData/Roaming");
+
+  public Equivalent(string key, string value) {
+    this.Key = key;
+    this.Value = value;
   }
 
-  public static Equivalent Template => new(@"<userDir>\\AppData\\Roaming", "%APPDATA%");
-
-  public static List<Equivalent> Templates => [
+  /// <summary>
+  /// TODO: Add property summary.
+  /// </summary>
+  internal static List<Equivalent> Templates => [
     Template,
-    new Equivalent(@"<userDir>\\AppData\\Local", "%LOCALAPPDATA%"),
-    new Equivalent("<userDir>", "%USERPROFILE%")
+    new("%LOCALAPPDATA%","<userDir>/AppData/Local"),
+    new("%USERPROFILE%","<userDir>"),
+    new("%HOME%","<userDir>"),
+    new("Progra~1","Program Files"),
+    new("Progra~2","Program Files (x86)")
   ];
 }

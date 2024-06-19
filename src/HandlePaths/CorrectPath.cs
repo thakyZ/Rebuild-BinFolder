@@ -25,15 +25,15 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Rebuild_BinFolder.HandlePaths;
 internal static class CorrectPath {
-  internal static List<ProgramPath> CorrectPaths() {
+  internal static List<ProgramPath> CorrectPaths(PathData systemPaths, PathData systemProgramList) {
     List<ProgramPath> systemPathsListClone = [];
     List<ProgramPath> systemProgramListClone = [];
 
-    foreach (var path in PathData.SystemPaths) {
+    foreach (var path in systemPaths.Path) {
       systemPathsListClone.Add(path);
     }
 
-    foreach (var path in PathData.SystemProgramList) {
+    foreach (var path in systemProgramList.AuxiliaryPath) {
       systemProgramListClone.Add(path);
     }
 

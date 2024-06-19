@@ -18,6 +18,10 @@ internal class Log {
     Console.ForegroundColor = DefaultForegroundColor;
   }
 
+  private static bool TestLogLevel(LogLevel logLevel) {
+    return Services.IsConfigNull() || Services.Config.LogLevel <= logLevel;
+  }
+
   private static string LevelAbbrivation(LogLevel type) {
     return type switch {
       LogLevel.Verbose => "VRB",
@@ -63,7 +67,7 @@ internal class Log {
   }
 
   internal static void Error(string message) {
-    if (Services.Config.LogLevel <= LogLevel.Error) {
+    if (TestLogLevel(LogLevel.Error)) {
       DefaultMessage(LogLevel.Error);
       Console.Write($"{message}\n");
       WriteLine($"[{GetDate}][ERR] {message}");
@@ -71,7 +75,7 @@ internal class Log {
   }
 
   internal static void Error(Exception exception, string message) {
-    if (Services.Config.LogLevel <= LogLevel.Error) {
+    if (TestLogLevel(LogLevel.Error)) {
       DefaultMessage(LogLevel.Error);
       Console.Write($"{message}\n");
       PushForegroundColor(ConsoleColor.DarkRed);
@@ -82,7 +86,7 @@ internal class Log {
   }
 
   internal static void Warn(string message) {
-    if (Services.Config.LogLevel <= LogLevel.Warn) {
+    if (TestLogLevel(LogLevel.Warn)) {
       DefaultMessage(LogLevel.Warn);
       PushForegroundColor(ConsoleColor.Yellow);
       Console.Write($"{message}\n");
@@ -92,7 +96,7 @@ internal class Log {
   }
 
   internal static void Info(string message) {
-    if (Services.Config.LogLevel <= LogLevel.Info) {
+    if (TestLogLevel(LogLevel.Info)) {
       DefaultMessage(LogLevel.Info);
       Console.Write($"{message}\n");
       WriteLine($"[{GetDate}][INF] {message}");
@@ -100,7 +104,7 @@ internal class Log {
   }
 
   internal static void Debug(string message) {
-    if (Services.Config.LogLevel <= LogLevel.Debug) {
+    if (TestLogLevel(LogLevel.Debug)) {
       DefaultMessage(LogLevel.Debug);
       Console.Write($"{message}\n");
       WriteLine($"[{GetDate}][DBG] {message}");
@@ -108,7 +112,7 @@ internal class Log {
   }
 
   internal static void Verbose(string message) {
-    if (Services.Config.LogLevel <= LogLevel.Verbose) {
+    if (TestLogLevel(LogLevel.Verbose)) {
       DefaultMessage(LogLevel.Verbose);
       Console.Write($"{message}\n");
       WriteLine($"[{GetDate}][DBG] {message}");
@@ -116,7 +120,7 @@ internal class Log {
   }
 
   internal static void Object(object? obj, LogLevel level = LogLevel.Verbose) {
-    if (Services.Config.LogLevel <= level) {
+    if (TestLogLevel(level)) {
       DefaultMessage(level);
       string message = "unknown";
       if (obj is null) {
@@ -134,7 +138,7 @@ internal class Log {
   }
 
   internal static void Additions(string message, string variable) {
-    if (Services.Config.LogLevel <= LogLevel.Info) {
+    if (TestLogLevel(LogLevel.Info)) {
       DefaultMessage(LogLevel.Info);
       Console.Write($"{message} ");
       WriteLine($"[{GetDate}][INF] {message} {variable}");
@@ -146,7 +150,7 @@ internal class Log {
   }
 
   internal static void Changes(string message, string variable) {
-    if (Services.Config.LogLevel <= LogLevel.Info) {
+    if (TestLogLevel(LogLevel.Info)) {
       DefaultMessage(LogLevel.Info);
       Console.Write($"{message}\n");
       WriteLine($"[{GetDate}][INF] {message}");

@@ -1,11 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Security.Cryptography;
 
 namespace Rebuild_BinFolder.Exceptions;
 public class UserConfigException : Exception {
@@ -39,7 +33,7 @@ public class UserConfigException : Exception {
   }
 
   protected static string ModifyMessage(string sid, string? message) {
-    Trace.WriteLine($"Original exception message was \"{message ?? "null"}\"");
+    Debug.WriteLine($"Original exception message was \"{message ?? "null"}\"");
     var lowerInvariantMessage = message?.ToLowerInvariant() is not null ? $"{message.ToLowerInvariant()}" : "Failed to get user config instance for current user SID.";
     return $"{lowerInvariantMessage}\tFetched SID: {sid}";
   }

@@ -33,7 +33,8 @@ public partial class Handler {
 
   RunState currentRunState;
 
-  public Handler(string path, string auxiliaryPath, RunState runState) {
+  public Handler(string path, string auxiliaryPath) {
+    RunState runState = Services.RunState;
     // Equivalents = Singletons.Get<Config>().Equivalents.GetDictionary();
     var oldPath = path.Split(';').ToList();
     oldPath.RemoveAll(x => string.IsNullOrEmpty(x) || string.IsNullOrWhiteSpace(x));

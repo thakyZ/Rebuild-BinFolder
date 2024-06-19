@@ -1,62 +1,73 @@
-﻿using Newtonsoft.Json;
+﻿#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+using System.Runtime.Serialization;
+
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Serialization;
+
+using Rebuild_BinFolder.Configuration.Converters;
 
 namespace Rebuild_BinFolder.Configuration;
 
-[Serializable]
+[JsonObject(MemberSerialization = MemberSerialization.OptIn, NamingStrategyType = typeof(SnakeCaseNamingStrategy))]
 public class AdminConfig {
-  [JsonProperty("admin_root")]
-  public AuxName AdminRoot {
-    get; set;
+  /// <summary>
+  /// TODO: Add property summary.
+  /// </summary>
+  [JsonProperty("root", Order = 0)]
+  public AuxName Root { get; set; }
+
+  /// <summary>
+  /// TODO: Add property summary.
+  /// </summary>
+  [JsonProperty("aux_list_name", Order = 1)]
+  public string AuxListName { get; set; }
+
+  /// <summary>
+  /// TODO: Add property summary.
+  /// </summary>
+  [JsonConverter(typeof(ProgramPathsConverter))]
+  [JsonProperty("programs", Order = 2)]
+  public List<ProgramPath> Programs { get; set; }
+
+  /// <summary>
+  /// TODO: Add property summary.
+  /// </summary>
+  [JsonConverter(typeof(ProgramPathsConverter))]
+  [JsonProperty("force_in_path", Order = 3)]
+  public List<ProgramPath> ForceInPath { get; set; }
+
+  /// <summary>
+  /// TODO: Add property summary.
+  /// </summary>
+  public List<CustomEnvironmentVar> CustomEnvironmentVariables { get; set; } = [];
+
+  /// <summary>
+  /// TODO: Add property summary.
+  /// </summary>
+  internal static AdminConfig Empty => new();
+
+  [JsonExtensionData]
+  private IDictionary<string, JToken> _additionalData;
+
+  [OnDeserialized]
+  private void OnDeserialized(StreamingContext context) {
+    JObject custom = (JObject)_additionalData["custom_environment_variables"];
+    if (!custom.HasValues) return;
+    foreach ((string key, JToken? value) in custom) {
+      if (value is null) continue;
+      if (value.Type == JTokenType.Array) {
+        CustomEnvironmentVariables.Add(new(key, value.Values<string>()));
+      } else if (value.Type == JTokenType.String) {
+        CustomEnvironmentVariables.Add(new(key, (string?)value));
+      } else {
+        throw new JsonException($"Invalid type of JToken at key {key}, expected Array or String, got {value.Type}");
+      }
+    }
   }
 
-  [JsonProperty("admin_aux_list")]
-  public string AdminAuxList {
-    get; set;
+  [OnSerialized]
+  private void OnSerialized(StreamingContext context) {
+    // Do Nothing.
   }
-
-  [JsonProperty("admin_programs")]
-  public List<ProgramPath> AdminPrograms {
-    get; set;
-  } = [];
-
-  [JsonProperty("force_in_admin_path")]
-  public List<ProgramPath> ForceInAdminPath {
-    get; set;
-  } = [];
-
-  [JsonProperty("custom_environment_variables")]
-  public Dictionary<string, ProgramPath> CustomEnvironmentVariables {
-    get; set;
-  } = [];
-
-  [JsonConstructor]
-  public AdminConfig(AuxName adminRoot, string adminAuxPath, List<ProgramPath> adminPrograms, List<ProgramPath> forceInAdminPath, Dictionary<string, ProgramPath> customEnvironmentVariables) {
-    this.AdminRoot = adminRoot;
-    this.AdminAuxList = adminAuxPath;
-    this.AdminPrograms = adminPrograms;
-    this.ForceInAdminPath = forceInAdminPath;
-    this.CustomEnvironmentVariables = customEnvironmentVariables;
-  }
-
-  public AdminConfig(AuxName adminRoot, string adminAuxPath) {
-    this.AdminAuxList = adminAuxPath;
-    this.AdminRoot = adminRoot;
-  }
-
-  public AdminConfig(AuxName adminRoot) {
-    this.AdminAuxList = "APROG_LIST";
-    this.AdminRoot = adminRoot;
-  }
-
-  public AdminConfig(string adminAuxPath) {
-    this.AdminAuxList = adminAuxPath;
-    this.AdminRoot = new AuxName("APROG_DIR", ProgramPath.Empty);
-  }
-
-  private AdminConfig() {
-    this.AdminAuxList = "APROG_LIST";
-    this.AdminRoot = new AuxName("APROG_DIR", ProgramPath.Empty);
-  }
-
-  public static AdminConfig Empty => new();
 }

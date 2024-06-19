@@ -1,29 +1,32 @@
-﻿using System;
+﻿// Disabled because unused.
+/*
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
+using System.Runtime.Serialization;
+using System.Diagnostics.CodeAnalysis;
+using Rebuild_BinFolder.Exceptions;
 
 namespace Rebuild_BinFolder.Extensions;
-internal class OrderedMap<TKey, TValue> : OrderedDictionary where TKey : notnull {
-  private sealed class ReverseComparer : IComparer
-  {
+internal class OrderedMap<TKey, TValue> : OrderedDictionary, IEquatable<OrderedMap<TKey, TValue>> where TKey : notnull {
+  [SuppressMessage("Major Code Smell", "S1144:Unused private types or members should be removed", Justification = "Implemented via reflection.")]
+  private sealed class ReverseComparer : IComparer {
     public int Compare(object? x, object? y) => new CaseInsensitiveComparer().Compare(y, x);
   }
 
-  private sealed class OrderedMapMJsonConverter : System.Text.Json.Serialization.JsonConverter<OrderedMap<TKey, TValue>>
-  {
+  [SuppressMessage("Major Code Smell", "S1144:Unused private types or members should be removed", Justification = "Implemented via reflection.")]
+  private sealed class OrderedMapMJsonConverter : System.Text.Json.Serialization.JsonConverter<OrderedMap<TKey, TValue>> {
     public override bool CanConvert(Type typeToConvert) {
       throw new NotImplementedException();
     }
 
-    public override OrderedMap<TKey, TValue>? Read(ref System.Text.Json.Utf8JsonReader reader, Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
-    {
+    public override OrderedMap<TKey, TValue>? Read(ref System.Text.Json.Utf8JsonReader reader, Type typeToConvert, System.Text.Json.JsonSerializerOptions options) {
       return [];
     }
 
-    public override void Write(System.Text.Json.Utf8JsonWriter writer, OrderedMap<TKey, TValue> orderedMap, System.Text.Json.JsonSerializerOptions options)
-    {
+    public override void Write(System.Text.Json.Utf8JsonWriter writer, OrderedMap<TKey, TValue> orderedMap, System.Text.Json.JsonSerializerOptions options) {
       if (orderedMap is null) {
         writer.WriteNullValue();
         return;
@@ -41,28 +44,27 @@ internal class OrderedMap<TKey, TValue> : OrderedDictionary where TKey : notnull
       writer.WriteEndArray();
     }
   }
-  private class OrderedMapNJsonConverter : Newtonsoft.Json.JsonConverter<OrderedMap<TKey, TValue>>
-  {
-    public override OrderedMap<TKey, TValue>? ReadJson(Newtonsoft.Json.JsonReader reader, Type objectType, OrderedMap<TKey, TValue>? existingValue, bool hasExistingValue, Newtonsoft.Json.JsonSerializer serializer)
-    {
+
+  [SuppressMessage("Major Code Smell", "S1144:Unused private types or members should be removed", Justification = "Implemented via reflection.")]
+  private sealed class OrderedMapNJsonConverter : Newtonsoft.Json.JsonConverter<OrderedMap<TKey, TValue>> {
+    public override OrderedMap<TKey, TValue>? ReadJson(Newtonsoft.Json.JsonReader reader, Type objectType, OrderedMap<TKey, TValue>? existingValue, bool hasExistingValue, Newtonsoft.Json.JsonSerializer serializer) {
       OrderedMap<TKey, TValue> output = [];
       var jArray = Newtonsoft.Json.Linq.JToken.ReadFrom(reader);
       for (int i = 0; i < jArray.Count(); i++) {
         if (jArray[i] is Newtonsoft.Json.Linq.JToken item) {
           int? _index = (int?)item["index"];
-          int index = _index ?? throw new NullReferenceException("Json value at index is null");
-          TKey? _key = item["key"];
-          TKey key = _key ?? throw new NullReferenceException("Json value at index is null");
-          TValue? _value = item["value"];
-          TValue value = _value ?? throw new NullReferenceException("Json value at index is null");
-          output.Insert(index, key, value);
+          int index = _index ?? throw new NullVariableException("Json value at index is null");
+          //TKey? _key = item["key"];
+          //TKey key = _key ?? throw new NullReferenceException("Json value at index is null");
+          //TValue? _value = item["value"];
+          //TValue value = _value ?? throw new NullReferenceException("Json value at index is null");
+          //output.Insert(index, key, value);
         }
       }
       return [];
     }
 
-    public override void WriteJson(Newtonsoft.Json.JsonWriter writer, OrderedMap<TKey, TValue>? orderedMap, Newtonsoft.Json.JsonSerializer serializer)
-    {
+    public override void WriteJson(Newtonsoft.Json.JsonWriter writer, OrderedMap<TKey, TValue>? orderedMap, Newtonsoft.Json.JsonSerializer serializer) {
       if (orderedMap is null) {
         writer.WriteNull();
         return;
@@ -82,10 +84,56 @@ internal class OrderedMap<TKey, TValue> : OrderedDictionary where TKey : notnull
     }
   }
 
+  private int _size => this.Count;
+  private (TKey, TValue?)[] _items => [.. this.Keys.Select((item, index) => (item, this[item]))];
+
   public OrderedMap() {
   }
 
-  public OrderedMap(Dictionary<TKey, TValue> dictionary) {
+  public OrderedMap(Dictionary<TKey, TValue?> dictionary) {
+    foreach ((TKey key, TValue? value) in dictionary) {
+      this.Add(key, value);
+    }
+  }
+
+  public bool Exists(Predicate<(TKey Key, TValue? Value)> match) => FindIndex(match) != -1;
+  public int FindIndex(Predicate<(TKey Key, TValue? Value)> match) => FindIndex(0, _size, match);
+
+  public int FindIndex(int startIndex, Predicate<(TKey key, TValue? Value)> match) => FindIndex(startIndex, _size - startIndex, match);
+
+  public int FindIndex(int startIndex, int count, Predicate<(TKey Key, TValue? Value)> match) {
+    if ((uint)startIndex > (uint)_size) {
+      throw new ArgumentOutOfRangeException(nameof(startIndex), startIndex, "Index must be less or equal to the size of the dictionary.");
+    }
+
+    if (count < 0 || startIndex > _size - count) {
+      throw new ArgumentOutOfRangeException(nameof(count), count, "Count is less than zero or greater than the size of the dictionary.");
+    }
+
+    if (match == null) {
+      throw new ArgumentNullException(nameof(match));
+      // ThrowHelper.ThrowArgumentNullException(ExceptionArgument.match);
+    }
+
+    int endIndex = startIndex + count;
+    for (int i = startIndex; i < endIndex; i++) {
+      if (match(_items[i]))
+        return i;
+    }
+    return -1;
+  }
+
+  public bool TrueForAll(Predicate<(TKey Key, TValue? Value)> match) {
+    if (match == null) {
+      throw new ArgumentNullException(nameof(match));
+    }
+
+    for (int i = 0; i < _size; i++) {
+      if (!match(_items[i])) {
+        return false;
+      }
+    }
+    return true;
   }
 
   public void Add(TKey key, TValue? value) {
@@ -124,7 +172,8 @@ internal class OrderedMap<TKey, TValue> : OrderedDictionary where TKey : notnull
       var nullCheck1 = this.Values[index] is null && item.Value is not null;
       var nullCheck2 = this.Values[index] is not null && item.Value is null;
       var nullCheck3 = this.Values[index] is TValue value && item.Value is not null && !value.Equals(item.Value);
-      if (!this.Keys[index].Equals(item.Key) || nullCheck1 || nullCheck2 || nullCheck3) this.SetAtIndex(index, item.Key, item.Value);
+      if (!this.Keys[index].Equals(item.Key) || nullCheck1 || nullCheck2 || nullCheck3)
+        this.SetAtIndex(index, item.Key, item.Value);
     }
   }
 
@@ -148,13 +197,13 @@ internal class OrderedMap<TKey, TValue> : OrderedDictionary where TKey : notnull
 
   public new List<TKey> Keys {
     get {
-      return [..base.Keys.Cast<TKey>()];
+      return [.. base.Keys.Cast<TKey>()];
     }
   }
 
   public new List<TValue?> Values {
     get {
-      return [..base.Keys.Cast<TValue?>()];
+      return [.. base.Keys.Cast<TValue?>()];
     }
   }
 
@@ -163,7 +212,7 @@ internal class OrderedMap<TKey, TValue> : OrderedDictionary where TKey : notnull
   }
 
   public List<(int index, TKey key, TValue? value)> GetIterator() {
-    return [..this.Select((item, index) => (index, item.Key, item.Value))];
+    return [.. this.Select((item, index) => (index, item.Key, item.Value))];
   }
 
 
@@ -178,34 +227,48 @@ internal class OrderedMap<TKey, TValue> : OrderedDictionary where TKey : notnull
   }
 
   public bool Equals(List<KeyValuePair<TKey, TValue?>> list) {
-    if (list.Count != this.Count) return false;
+    if (list.Count != this.Count)
+      return false;
     for (int i = 0; i < this.Count; i++) {
       (TKey thisKey, TValue? thisValue) = this.AtIndex(i);
       (TKey listKey, TValue? listValue) = list[i];
-      if (!thisKey.Equals(listKey)) return false;
-      else if ((thisValue is null && listValue is not null) || (thisValue is not null && listValue is null)) return false;
-      else if (thisValue is not null && !thisValue.Equals(listValue)) return false;
+      if (!thisKey.Equals(listKey))
+        return false;
+      else if ((thisValue is null && listValue is not null) || (thisValue is not null && listValue is null))
+        return false;
+      else if (thisValue is not null && !thisValue.Equals(listValue))
+        return false;
     }
     return true;
   }
 
-  public bool Equals(OrderedMap<TKey, TValue?> dictionary) {
-    if (this.GetHashCode().Equals(dictionary.GetHashCode())) return true;
-    if (dictionary.Count != this.Count) return false;
+  public bool Equals(OrderedMap<TKey, TValue>? dictionary) {
+    if (dictionary is null)
+      return false;
+    if (this.GetHashCode().Equals(dictionary.GetHashCode()))
+      return true;
+    if (dictionary.Count != this.Count)
+      return false;
     for (int i = 0; i < this.Count; i++) {
       (TKey thisKey, TValue? thisValue) = this.AtIndex(i);
       (TKey dictionaryKey, TValue? dictionaryValue) = dictionary.AtIndex(i);
-      if (!thisKey.Equals(dictionaryKey)) return false;
-      else if ((thisValue is null && dictionaryValue is not null) || (thisValue is not null && dictionaryValue is null)) return false;
-      else if (thisValue is not null && !thisValue.Equals(dictionaryValue)) return false;
+      if (!thisKey.Equals(dictionaryKey))
+        return false;
+      else if ((thisValue is null && dictionaryValue is not null) || (thisValue is not null && dictionaryValue is null))
+        return false;
+      else if (thisValue is not null && !thisValue.Equals(dictionaryValue))
+        return false;
     }
     return true;
   }
 
   public override bool Equals(object? obj) {
-    if (obj is null) return false;
-    else if (obj is List<KeyValuePair<TKey, TValue?>> list) return this.Equals(list);
-    else if (obj is OrderedMap<TKey, TValue?> dictionary) return this.Equals(dictionary);
+    if (obj is null)
+      return false;
+    else if (obj is List<KeyValuePair<TKey, TValue?>> list)
+      return this.Equals(list);
+    else if (obj is OrderedMap<TKey, TValue> dictionary)
+      return this.Equals(dictionary);
     return false;
   }
 
@@ -221,4 +284,9 @@ internal class OrderedMap<TKey, TValue> : OrderedDictionary where TKey : notnull
   public override string ToString() {
     return "";
   }
+
+  protected override void OnDeserialization(object? sender) {
+    base.OnDeserialization(sender);
+  }
 }
+*/

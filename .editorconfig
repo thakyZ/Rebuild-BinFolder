@@ -16,8 +16,6 @@ end_of_line = crlf
 insert_final_newline = true
 
 # Visual Studio Spell Check
-vsspell_section_id = 9af73f031aa64fd2828227032213940d
-vsspell_ignored_words_9af73f031aa64fd2828227032213940d = Admin|SSID|Json|serializer
 dotnet_style_operator_placement_when_wrapping = beginning_of_line
 dotnet_style_coalesce_expression = true:suggestion
 dotnet_style_null_propagation = true:suggestion
@@ -35,6 +33,9 @@ dotnet_style_prefer_compound_assignment = true:suggestion
 dotnet_style_prefer_simplified_interpolation = true:suggestion
 dotnet_style_prefer_collection_expression = when_types_loosely_match:suggestion
 dotnet_style_namespace_match_folder = true:suggestion
+vsspell_section_id = 9af73f031aa64fd2828227032213940d
+vsspell_dictionary_languages_9af73f031aa64fd2828227032213940d = inherited,en-US
+vsspell_ignored_words_9af73f031aa64fd2828227032213940d = Admin|Json|serializer|SSID
 
 [*.cs]
 #### Naming styles ####

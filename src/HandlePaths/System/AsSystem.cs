@@ -22,7 +22,8 @@ public partial class Handler {
     /// </summary>
     /// <returns></returns>
     public override ReturnedData Run() {
-      return new ReturnedData();
+      var output = new ReturnedData(OldPath, OldAuxiliaryPath);
+      return output;
     }
 
     /// <summary>
@@ -71,7 +72,7 @@ public partial class Handler {
       var output = withOutDuplicates.FindAll(x => {
         var yz = false;
         var yr = false;
-        if (!APROG_DIR_Regex.IsMatch(x) && !Regex.IsMatch(x, Regex.Escape(Services.Config.AdminConfig.AdminRoot.FullName))) {
+        if (!APROG_DIR_Regex.IsMatch(x) && !Regex.IsMatch(x, Regex.Escape(Services.Config.AdminConfig.Root.Path.FullName))) {
           yr = true;
           if (!programs.Exists(y => y.FullName == x)) {
             yz = true;
@@ -119,7 +120,7 @@ public partial class Handler {
 
       int index = 0;
       while (index < withOutDuplicates.Count) {
-        var replacedValueOne = Services.Config.AdminConfig.AdminRoot.FullName.Replace(@"\", @"\\");
+        var replacedValueOne = Services.Config.AdminConfig.Root.Path.FullName.Replace(@"\", @"\\");
 
         if (Regex.IsMatch(withOutDuplicates[index], $"^{replacedValueOne}\\\\") || Regex.IsMatch(withOutDuplicates[index], $"^%{Constants.SystemProgramsDirectory}%")) {
           withOutDuplicates.RemoveAt(index);
@@ -193,7 +194,7 @@ public partial class Handler {
 
       Log.Info("New FullName Removals: ");
       for (int i = 0; i < updatedPath.Count; i++) {
-        if (Regex.IsMatch(updatedPath[i], Regex.Escape(Services.Config.AdminConfig.AdminRoot.FullName.Replace(@"[\/]", @"\\"))) || APROG_DIR_Regex.IsMatch(updatedPath[i])) {
+        if (Regex.IsMatch(updatedPath[i], Regex.Escape(Services.Config.AdminConfig.Root.Path.FullName.Replace(@"[\/]", @"\\"))) || APROG_DIR_Regex.IsMatch(updatedPath[i])) {
           Log.Additions("Removing FullName: ", updatedPath[i]);
           updatedPath.RemoveAt(i);
         } else {
@@ -207,7 +208,7 @@ public partial class Handler {
       }
 
       Log.Info("New FullName Additions: ");
-      foreach (var programPath in Services.Config.AdminConfig.ForceInAdminPath.Select(x => x.FullName)) {
+      foreach (var programPath in Services.Config.AdminConfig.ForceInPath.Select(x => x.FullName)) {
         if (VolumeRegex().IsMatch(programPath)) {
           updatedPath.Add(programPath);
           Log.Additions("Adding FullName: ", programPath);
@@ -225,7 +226,7 @@ public partial class Handler {
     internal override List<string> UpdatePathOne(List<string> path) {
       _ = path.Remove($"%{Constants.SystemProgramsList}%");
 
-      var programs = Services.Config.AdminConfig.AdminPrograms;
+      var programs = Services.Config.AdminConfig.Programs;
       var tempPath = RemoveDuplicates(path, programs);
 
       _ = tempPath.Remove($"%{Constants.SystemProgramsList}%");

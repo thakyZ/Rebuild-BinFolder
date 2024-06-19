@@ -19,16 +19,12 @@ public abstract class AsGeneric : IAsGeneric {
   /// <summary>
   /// The main environment variable FullName
   /// </summary>
-  public List<string>? OldPath {
-    get; set;
-  }
+  public List<string> OldPath { get; set; }
 
   /// <summary>
   /// Auxiliary path for more items in the path variable.
   /// </summary>
-  public List<string>? OldAuxiliaryPath {
-    get; set;
-  }
+  public List<string> OldAuxiliaryPath { get; set; }
 
   /// <summary>
   /// Dictionary of equivalents matching other side.

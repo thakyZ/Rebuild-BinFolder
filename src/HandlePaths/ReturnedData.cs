@@ -27,13 +27,18 @@ public class ReturnedData {
     this.OldPath = oldPath ?? new();
   }
 
+  public ReturnedData(List<string> oldPath, List<string>? oldAuxiliaryPath) {
+    this.NewPath = new();
+    this.OldPath = new(oldPath, oldAuxiliaryPath);
+  }
+
   public ReturnedData(List<ProgramPath> newPath, List<ProgramPath> oldPath, List<ProgramPath>? newAuxiliaryPath = null, List<ProgramPath>? oldAuxiliaryPath = null) {
     if (newAuxiliaryPath is not null && oldAuxiliaryPath is not null) {
       this.NewPath = new(newPath, newAuxiliaryPath);
       this.OldPath = new(oldPath, oldAuxiliaryPath);
     } else {
-      this.NewPath = new(newPath);
-      this.OldPath = new(oldPath);
+      this.NewPath = new(newPath, null);
+      this.OldPath = new(oldPath, null);
     }
   }
 }
