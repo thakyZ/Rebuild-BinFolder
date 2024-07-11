@@ -9,7 +9,7 @@ using Rebuild_BinFolder.Configuration.Converters;
 
 namespace Rebuild_BinFolder.Configuration;
 
-[JsonObject(MemberSerialization = MemberSerialization.OptIn, NamingStrategyType = typeof(SnakeCaseNamingStrategy))]
+[JsonObject(MemberSerialization = MemberSerialization.OptIn)]
 public class AdminConfig {
   /// <summary>
   /// TODO: Add property summary.
@@ -64,10 +64,5 @@ public class AdminConfig {
         throw new JsonException($"Invalid type of JToken at key {key}, expected Array or String, got {value.Type}");
       }
     }
-  }
-
-  [OnSerialized]
-  private void OnSerialized(StreamingContext context) {
-    // Do Nothing.
   }
 }

@@ -6,7 +6,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Rebuild_BinFolder.Extensions;
+namespace Rebuild_BinFolder.Attributes;
 internal class DefaultValueCallStaticPropertyAttribute : DefaultValueAttribute {
   public Type Type { get; }
   public string Property { get; }

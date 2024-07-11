@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel;
 
-namespace Rebuild_BinFolder.Extensions;
+namespace Rebuild_BinFolder.Attributes;
 public class DefaultValueNewAttribute : DefaultValueAttribute {
   public Type Type { get; }
   public object[] Args { get; }

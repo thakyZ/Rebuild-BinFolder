@@ -6,13 +6,13 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 
+using Rebuild_BinFolder.Attributes;
 using Rebuild_BinFolder.Configuration.Converters;
-using Rebuild_BinFolder.Extensions;
 using Rebuild_BinFolder.Helpers;
 
 namespace Rebuild_BinFolder.Configuration;
 
-[JsonObject(MemberSerialization = MemberSerialization.OptIn, NamingStrategyType = typeof(SnakeCaseNamingStrategy))]
+[JsonObject(MemberSerialization = MemberSerialization.OptIn)]
 public class UserConfig {
   /// <summary>
   /// TODO: Add property summary.
@@ -49,7 +49,7 @@ public class UserConfig {
   [JsonConverter(typeof(ProgramPathsConverter))]
   [JsonProperty("force_in_path", Order = 4)]
   [DefaultValueNew(typeof(List<ProgramPath>), [])]
-  public List<ProgramPath> ForceInUserPath { get; set; }
+  public List<ProgramPath> ForceInPath { get; set; }
 
   /// <summary>
   /// TODO: Add property summary.

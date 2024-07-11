@@ -2,20 +2,23 @@
 root = true
 
 [*]
-
-
 #### Core EditorConfig Options ####
 
 # Indentation and spacing
 indent_size = 2
 indent_style = space
-tab_width = 2
+tab_width = 4
 
 # New line preferences
 end_of_line = crlf
 insert_final_newline = true
 
 # Visual Studio Spell Check
+vsspell_section_id = 9af73f031aa64fd2828227032213940d
+vsspell_dictionary_languages_9af73f031aa64fd2828227032213940d = inherited,en-US
+vsspell_ignored_words_9af73f031aa64fd2828227032213940d = Admin|Json|serializer|SSID
+
+# Global .NET Style rules
 dotnet_style_operator_placement_when_wrapping = beginning_of_line
 dotnet_style_coalesce_expression = true:suggestion
 dotnet_style_null_propagation = true:suggestion
@@ -33,9 +36,6 @@ dotnet_style_prefer_compound_assignment = true:suggestion
 dotnet_style_prefer_simplified_interpolation = true:suggestion
 dotnet_style_prefer_collection_expression = when_types_loosely_match:suggestion
 dotnet_style_namespace_match_folder = true:suggestion
-vsspell_section_id = 9af73f031aa64fd2828227032213940d
-vsspell_dictionary_languages_9af73f031aa64fd2828227032213940d = inherited,en-US
-vsspell_ignored_words_9af73f031aa64fd2828227032213940d = Admin|Json|serializer|SSID
 
 [*.cs]
 #### Naming styles ####
@@ -101,23 +101,7 @@ csharp_indent_braces = true
 csharp_indent_case_contents_when_block = true
 
 # Expression-level preferences
-dotnet_style_coalesce_expression = true:suggestion
-dotnet_style_null_propagation = true:suggestion
-dotnet_style_prefer_auto_properties = true:silent
-dotnet_style_object_initializer = true:suggestion
-dotnet_style_collection_initializer = true:suggestion
-dotnet_style_prefer_simplified_boolean_expressions = true:suggestion
-dotnet_style_prefer_conditional_expression_over_assignment = true:silent
-dotnet_style_prefer_conditional_expression_over_return = true:silent
-dotnet_style_explicit_tuple_names = true:suggestion
-dotnet_style_prefer_inferred_tuple_names = true:suggestion
-dotnet_style_prefer_inferred_anonymous_type_member_names = true:suggestion
-dotnet_style_prefer_compound_assignment = true:suggestion
-dotnet_style_prefer_simplified_interpolation = true:suggestion
-dotnet_style_namespace_match_folder = true:suggestion
-dotnet_style_operator_placement_when_wrapping = beginning_of_line
 dotnet_style_prefer_foreach_explicit_cast_in_source = when_strongly_typed
-dotnet_style_prefer_is_null_check_over_reference_equality_method = true:suggestion
 csharp_prefer_simple_default_expression = true:silent
 csharp_style_deconstructed_variable_declaration = true
 csharp_style_implicit_object_creation_when_type_is_apparent = true
@@ -128,7 +112,6 @@ csharp_style_prefer_null_check_over_type_check = true
 csharp_style_prefer_range_operator = true
 csharp_style_prefer_tuple_swap = true
 csharp_style_prefer_utf8_string_literals = true
-csharp_style_throw_expression = true:suggestion
 csharp_style_unused_value_assignment_preference = discard_variable:silent
 csharp_style_unused_value_expression_statement_preference = discard_variable
 
@@ -207,17 +190,15 @@ csharp_style_prefer_method_group_conversion = true:silent
 csharp_style_prefer_primary_constructors = false:suggestion
 csharp_style_prefer_top_level_statements = false:warning
 
-# 'using' directive preferences
+# .NET 'using' directive preferences
 csharp_using_directive_placement = outside_namespace:suggestion
 
-# New line preferences
+# Code new line preferences
 csharp_style_allow_blank_line_after_colon_in_constructor_initializer_experimental = false
 csharp_style_allow_blank_line_after_token_in_arrow_expression_clause_experimental = true
 csharp_style_allow_blank_line_after_token_in_conditional_expression_experimental = false
 csharp_style_allow_blank_lines_between_consecutive_braces_experimental = true
 csharp_style_allow_embedded_statements_on_same_line_experimental = true
-dotnet_style_allow_multiple_blank_lines_experimental = false
-dotnet_style_allow_statement_immediately_after_block_experimental = false
 csharp_new_line_before_catch = false
 csharp_new_line_before_else = false
 csharp_new_line_before_finally = false
@@ -225,6 +206,8 @@ csharp_new_line_before_members_in_anonymous_types = true
 csharp_new_line_before_members_in_object_initializers = true
 csharp_new_line_before_open_brace = none
 csharp_new_line_between_query_expression_clauses = true
+dotnet_style_allow_multiple_blank_lines_experimental = false
+dotnet_style_allow_statement_immediately_after_block_experimental = false
 
 #### C# Formatting Rules ####
 
@@ -265,7 +248,7 @@ csharp_preserve_single_line_blocks = true
 csharp_preserve_single_line_statements = false
 
 # S125: Sections of code should not be commented out
-dotnet_diagnostic.S125.severity = none
+dotnet_diagnostic.S125.severity = suggestion
 
 # S907: "goto" statement should not be used
-dotnet_diagnostic.S907.severity = none
+dotnet_diagnostic.S907.severity = suggestion

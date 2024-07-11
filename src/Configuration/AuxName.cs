@@ -1,14 +1,9 @@
 ﻿#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-using System.ComponentModel;
-
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
 using Rebuild_BinFolder.Configuration.Converters;
-using Rebuild_BinFolder.Extensions;
 using Rebuild_BinFolder.Helpers;
-
-using WPath = System.IO.Path;
 
 namespace Rebuild_BinFolder.Configuration;
 
@@ -18,7 +13,6 @@ public class AuxName {
   /// TODO: Add property summary.
   /// </summary>
   [JsonProperty("name", Order = 0)]
-  [DefaultValue("")]
   public string Name { get; set; }
 
   /// <summary>
@@ -26,7 +20,6 @@ public class AuxName {
   /// </summary>
   [JsonConverter(typeof(ProgramPathConverter))]
   [JsonProperty("path", Order = 1)]
-  [DefaultValueCallStaticProperty(typeof(ProgramPath), nameof(ProgramPath.Empty))]
   public ProgramPath Path { get; set; }
 
   public AuxName() { }
@@ -42,7 +35,7 @@ public class AuxName {
   /// </summary>
   internal static AuxName DefaultSystem {
     get {
-      return new(Constants.Default.SystemProgramsDirectory, new(WPath.Join(Environment.GetEnvironmentVariable("SystemDrive"), "Files", "System", "Programs")));
+      return new(Constants.Default.SystemProgramsDirectory, ProgramPath.DefaultSystem);
     }
   }
 
@@ -51,7 +44,7 @@ public class AuxName {
   /// </summary>
   internal static AuxName DefaultUser {
     get {
-      return new(Constants.Default.UserProgramsDirectory, new(WPath.Join(Environment.GetEnvironmentVariable("USERPROFILE"), ".local", "programs")));
+      return new(Constants.Default.UserProgramsDirectory, ProgramPath.DefaultUser);
     }
   }
 }

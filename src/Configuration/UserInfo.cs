@@ -7,7 +7,7 @@ using Rebuild_BinFolder.Exceptions;
 
 namespace Rebuild_BinFolder.Configuration;
 
-[JsonObject(MemberSerialization = MemberSerialization.OptIn, NamingStrategyType = typeof(SnakeCaseNamingStrategy))]
+[JsonObject(MemberSerialization = MemberSerialization.OptIn)]
 public class UserInfo {
   /// <summary>
   /// TODO: Add property summary.

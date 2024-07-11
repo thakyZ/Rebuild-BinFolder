@@ -45,12 +45,12 @@ public partial class Config {
   /// TODO: Add method summary.
   /// </summary>
   /// <returns></returns>
-  private static string GetCurrentUserSID() {
+  private static string? GetCurrentUserSID() {
     try {
       return WindowsIdentity.GetCurrent().Owner!.ToString();
     } catch (Exception exception) {
       Log.Error(exception, "Could not get current user SID.");
-      throw;
+      return null;
     }
   }
 
@@ -58,8 +58,8 @@ public partial class Config {
   /// TODO: Add method summary.
   /// </summary>
   /// <returns></returns>
-  internal UserConfig GetCurrentUserConfig() {
-    return GetUserConfigBySID(GetCurrentUserSID());
+  internal UserConfig? GetCurrentUserConfig() {
+    return GetUserConfigBySID();
   }
 
   /// <summary>
@@ -67,7 +67,7 @@ public partial class Config {
   /// </summary>
   /// <param name="sid"></param>
   /// <returns></returns>
-  internal UserConfig GetUserConfigBySID(string sid) {
+  internal UserConfig? GetUserConfigBySID(string sid) {
     try {
       var output = UserConfigs.Find(x => x.Info.SID == sid);
       if (output is null) {
@@ -79,7 +79,7 @@ public partial class Config {
       return output;
     } catch (Exception exception) {
       Log.Error(exception, $"Failed to get User Config with SID, {sid}.");
-      throw;
+      return null;
     }
   }
 

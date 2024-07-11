@@ -4,8 +4,9 @@ using System.ComponentModel;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
+using Rebuild_BinFolder.Attributes;
 using Rebuild_BinFolder.Configuration.Converters;
-using Rebuild_BinFolder.Extensions;
+using Rebuild_BinFolder.Helpers;
 
 namespace Rebuild_BinFolder.Configuration;
 
@@ -26,18 +27,22 @@ public partial class Config {
   /// </summary>
   private const int _currentVersion = 2;
 
+  [JsonProperty("$schema", Order = 0)]
+  [DefaultValueCallStaticMethod(typeof(Constants), nameof(Constants.GetSchemaUri))]
+  public Uri Schema { get; set; }
+
   /// <summary>
   /// TODO: Add property summary.
   /// </summary>
   [JsonConverter(typeof(VersionNumberMigrate))]
-  [JsonProperty("version")]
+  [JsonProperty("version", Order = 1)]
   [DefaultValue(_currentVersion)]
   public long Version { get; set; }
 
   /// <summary>
   /// TODO: Add property summary.
   /// </summary>
-  [JsonProperty("log_level")]
+  [JsonProperty("log_level", Order = 2)]
   [DefaultValue(LogLevel.Info)]
   public LogLevel LogLevel { get; set; }
 
@@ -45,27 +50,27 @@ public partial class Config {
   /// TODO: Add property summary.
   /// </summary>
   [JsonConverter(typeof(EquivalentConverter))]
-  [JsonProperty("equivalents")]
-  [DefaultValueNew(typeof(List<Equivalent>), [])]
+  [JsonProperty("equivalents", Order = 3)]
+  [DefaultValueCallStaticProperty(typeof(Equivalent), nameof(Equivalent.Templates))]
   public List<Equivalent> Equivalents { get; set; }
 
   /// <summary>
   /// TODO: Add property summary.
   /// </summary>
-  [JsonProperty("user_configs")]
-  [DefaultValueNew(typeof(List<Equivalent>), [])]
+  [JsonProperty("user_configs", Order = 4)]
+  [DefaultValueNew(typeof(List<UserConfig>), [])]
   public List<UserConfig> UserConfigs { get; set; }
 
   /// <summary>
   /// TODO: Add property summary.
   /// </summary>
-  [JsonProperty("admin_config")]
-  [DefaultValueCallStaticProperty(typeof(AdminConfig), nameof(AdminConfig.Empty))]
+  [JsonProperty("admin_config", Order = 5)]
+  [DefaultValueNew(typeof(AdminConfig))]
   public AdminConfig AdminConfig { get; set; }
 
   public Config() {}
 
   static Config() {
-    CurrentUserSID = GetCurrentUserSID();
+    CurrentUserSID = GetCurrentUserSID() ?? "unknown";
   }
 }

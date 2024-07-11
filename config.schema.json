@@ -1,0 +1,147 @@
+{
+  "$id": "https://github.com/thakyZ/Rebuild_BinFolder/raw/dev/config.schema.json",
+  "$schema": "http://json-schema.org/draft/2020-12/schema",
+  "title": "Rebuild-BinFolder Config",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "integer",
+      "title": "Version",
+      "description": "The version of the config file.",
+      "default": 2,
+      "minimum": 0,
+      "maximum": 2
+    },
+    "log_level": {
+      "title": "Log Level",
+      "description": "The current log level of the program.\nValid values are 1-6 or \"Verbose\", \"Debug\", \"Info\", \"Warn\", \"Error\", \"Fatal\"",
+      "default": 3,
+      "enum": [
+        1, 2, 3, 4, 5, 6, "verbose", "Verbose", "debug", "Debug", "info",
+        "Info", "information", "Information", "warn", "Warn", "warning",
+        "Warning", "error", "Error", "fatal", "Fatal"
+      ]
+    },
+    "equivalents": {
+      "type": "object",
+      "title": "Equivalents",
+      "description": "A list of equivalents for transcribing Windows paths.",
+      "additionalProperties": { "type": "string"  },
+      "default": {}
+    },
+    "user_configs": {
+      "type": "array",
+      "title": "User Configs",
+      "description": "A list of user configs.",
+      "default": [],
+      "items": {
+        "type": "object",
+        "title": "User Config",
+        "description": "A single user config.",
+        "properties": {
+          "info": {
+            "type": "object",
+            "title": "User Info",
+            "description": "Information about the user.",
+            "properties": {
+              "sid": {
+                "type": "string",
+                "title": "Windows SSID/Unix UID",
+                "description": "The specified user's Windows SSID or if the OS is Unix their Unix UID.",
+                "pattern": "^S-\\d-\\d-\\d{2}-\\d{10}-\\d{10}-\\d{10}-\\d{4}|\\d+$",
+                "default": ""
+              },
+              "username": {
+                "type": "string",
+                "title": "Windows/Unix Username",
+                "description": "The specified user's Windows domain/username or if the OS is Unix their Unix username.",
+                "pattern": "^[\\w_-]+(?:\\\\|/)[\\w_-]+|[\\w_-]+$",
+                "default": ""
+              }
+            },
+            "required": ["sid","username"]
+          },
+          "root": { "$ref": "#/$defs/root" },
+          "aux_list_name": { "$ref": "#/$defs/aux_list_name" },
+          "programs": { "$ref": "#/$defs/programs" },
+          "force_in_path": { "$ref": "#/$defs/force_in_path" },
+          "custom_environment_variables": { "$ref": "#/$defs/custom_environment_variables" }
+        },
+        "required": ["info","root","aux_list_name","programs","force_in_path","custom_environment_variables"]
+      }
+    },
+    "admin_config": {
+      "type": "object",
+      "title": "System/Admin Config",
+      "description": "The data for the system or admin config.",
+      "properties": {
+        "root": { "$ref": "#/$defs/root" },
+        "aux_list_name": { "$ref": "#/$defs/aux_list_name" },
+        "programs": { "$ref": "#/$defs/programs" },
+        "force_in_path": { "$ref": "#/$defs/force_in_path" },
+        "custom_environment_variables": { "$ref": "#/$defs/custom_environment_variables" }
+      },
+      "required": ["root","aux_list_name","programs","force_in_path","custom_environment_variables"]
+    }
+  },
+  "required": ["version","log_level","equivalents","user_configs","admin_config"],
+  "$defs": {
+    "root": {
+      "type": "object",
+      "title": "Auxilary Path Information",
+      "description": "An object containing the information about the auxilary path directory.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Auxilary Path Environment Variable Name",
+          "description": "The name of the environment variable of the auxilary directory.",
+          "default": "",
+          "pattern": "^[\\w_]+$"
+        },
+        "path": {
+          "type": "string",
+          "title": "Auxilary Path Directory",
+          "description": "The path to the auxilary directory.",
+          "default": ""
+        }
+      },
+      "required": ["name","path"]
+    },
+    "aux_list_name": {
+      "type": "string",
+      "title": "Auxilary Path List Name",
+      "description": "The name of the auxilary path list environment variable.",
+      "default": "",
+      "pattern": "^[\\w_]+$"
+    },
+    "programs": {
+      "type": "array",
+      "title": "List of Programs in Auxilary Path List",
+      "description": "Paths to directories to split into the sublist of paths for Windows compatibility.",
+      "default": [],
+      "items": { "type": "string" }
+    },
+    "force_in_path": {
+      "type": "array",
+      "title": "Force These Paths in System/User Path",
+      "description": "Paths to directories to specifically force to keep in the system/user path variable.",
+      "default": [],
+      "items": { "type": "string" }
+    },
+    "custom_environment_variables": {
+      "type": "object",
+      "title": "Custom Environment Variables",
+      "description": "A list of custom environment variables.",
+      "default": {},
+      "additionalProperties": { "$ref": "#/$defs/custom_environment_variable"  },
+      "propertyNames": { "pattern": "^[\\w_]+$" }
+    },
+    "custom_environment_variable": {
+      "type": ["array", "string"],
+      "title": "Custom Environment Variable",
+      "description": "A single custom environment variable.\nIf the type of the key/value is an array these will be joined via the system's path variable separator.",
+      "default": "",
+      "items": { "type": "string" }
+    }
+  }
+}

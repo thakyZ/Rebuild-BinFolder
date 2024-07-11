@@ -12,15 +12,15 @@ public class Equivalent {
   /// </summary>
   public string Value { get; set; }
 
-  /// <summary>
-  /// TODO: Add property summary.
-  /// </summary>
-  internal static Equivalent Template => new("%APPDATA%","<userDir>/AppData/Roaming");
-
   public Equivalent(string key, string value) {
     this.Key = key;
     this.Value = value;
   }
+
+  /// <summary>
+  /// TODO: Add property summary.
+  /// </summary>
+  internal static Equivalent Template => new("%APPDATA%", "<userDir>/AppData/Roaming");
 
   /// <summary>
   /// TODO: Add property summary.

@@ -2,6 +2,8 @@
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
+using Rebuild_BinFolder.Helpers;
+
 namespace Rebuild_BinFolder.Configuration;
 
 public sealed partial class ProgramPath : IEquatable<ProgramPath> {
@@ -94,6 +96,16 @@ public sealed partial class ProgramPath : IEquatable<ProgramPath> {
   internal static ProgramPath Empty => new("");
 
   /// <summary>
+  /// TODO: Add property summary.
+  /// </summary>
+  internal static ProgramPath DefaultSystem => new(Constants.Default.SystemProgramsDirectoryValue);
+
+  /// <summary>
+  /// TODO: Add property summary.
+  /// </summary>
+  internal static ProgramPath DefaultUser => new(Constants.Default.UserProgramsDirectoryValue);
+
+  /// <summary>
   /// TODO: Add method summary.
   /// </summary>
   /// <returns></returns>
@@ -136,6 +148,7 @@ public sealed partial class ProgramPath : IEquatable<ProgramPath> {
     }
     return output;
   }
+
   /// <summary>
   /// TODO: Add method summary.
   /// </summary>
@@ -155,6 +168,7 @@ public sealed partial class ProgramPath : IEquatable<ProgramPath> {
     }
     return output;
   }
+
   /// <summary>
   /// TODO: Add method summary.
   /// </summary>
@@ -178,6 +192,7 @@ public sealed partial class ProgramPath : IEquatable<ProgramPath> {
     }
     return output;
   }
+
   /// <summary>
   /// TODO: Add method summary.
   /// </summary>
@@ -203,6 +218,7 @@ public sealed partial class ProgramPath : IEquatable<ProgramPath> {
     }
     return output;
   }
+
   /// <summary>
   /// TODO: Add method summary.
   /// </summary>
@@ -226,6 +242,7 @@ public sealed partial class ProgramPath : IEquatable<ProgramPath> {
     }
     return output;
   }
+
   /// <summary>
   /// TODO: Add method summary.
   /// </summary>
@@ -251,6 +268,7 @@ public sealed partial class ProgramPath : IEquatable<ProgramPath> {
     }
     return output;
   }
+
   /// <summary>
   /// TODO: Add method summary.
   /// </summary>
@@ -274,6 +292,7 @@ public sealed partial class ProgramPath : IEquatable<ProgramPath> {
     }
     return output;
   }
+
   /// <summary>
   /// TODO: Add method summary.
   /// </summary>
@@ -293,6 +312,7 @@ public sealed partial class ProgramPath : IEquatable<ProgramPath> {
     }
     return output;
   }
+
   /// <summary>
   /// TODO: Add method summary.
   /// </summary>
@@ -311,6 +331,7 @@ public sealed partial class ProgramPath : IEquatable<ProgramPath> {
     }
     return output;
   }
+
   /// <summary>
   /// TODO: Add method summary.
   /// </summary>

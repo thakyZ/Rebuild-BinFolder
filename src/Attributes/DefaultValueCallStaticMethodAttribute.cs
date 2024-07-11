@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Reflection;
 
-namespace Rebuild_BinFolder.Extensions;
+namespace Rebuild_BinFolder.Attributes;
 public class DefaultValueCallStaticMethodAttribute : DefaultValueAttribute {
   public Type Type { get; }
   public string Method { get; }
