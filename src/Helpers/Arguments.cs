@@ -1,95 +1,127 @@
-﻿using Microsoft.VisualStudio.TestPlatform.CoreUtilities.Helpers;
+﻿using Rebuild_BinFolder.Extensions;
 
 namespace Rebuild_BinFolder.Helpers;
 
-internal static class ArgumentsExtension {
-  internal static string FetchCommand(this List<Argument> _arguments, string arg) {
-    try {
-      var argument = _arguments.Find(a => a.CommandNames.Contains(arg));
-      return argument.Run();
-    } catch (Exception exception) {
-      Log.Error(exception, "Failed to find arguments");
-    }
+public interface IBaseArgument {
+  public string[] CommandNames { get; }
+  public string DictionaryKey { get; }
+  public Action? Function { get; }
+  public string HelpMessage { get; }
+  public bool HasValue { get; }
+  internal object? InternalValue { get; }
+  public void CleanCommandNames(IEnumerable<string> otherCommands);
+  public string Run();
+}
 
-    return "";
-  }
-
-  internal static bool ContainsCommandName(this List<string> commandNames, string arg) {
-    List<string> commandNamePrefixes = commandNames.CommandNamesToPrefixes();
-    return commandNamePrefixes.Contains(arg);
-  }
-
-  internal static List<string> CommandNamesToPrefixes(this List<string> commandNames) {
-    string[] prefixes = ["-!", "-!+", "--!+", "/!"];
-    List<string> output = [];
-
-    foreach (string commandName in commandNames) {
-      foreach (string prefix in prefixes) {
-        if (commandName.Length > 1 && prefix.EndsWith("!+")) {
-          output.Add(prefix.Replace("!+", commandName));
-        } else if (prefix.EndsWith('!')) {
-          output.Add(prefix.Replace('!', commandName[0]));
-        }
+internal abstract class BaseArgument : IBaseArgument {
+  private string[] _commandNames = [];
+  public string[] CommandNames {
+    get => this._commandNames;
+    private init {
+      if (this._commandNames.Length == 0) {
+        this._commandNames = ConvertCommandNames(value);
       }
     }
-    return output;
+  }
+  public string DictionaryKey { get; }
+  public Action Function { get; }
+  public string HelpMessage { get; }
+  public bool HasValue => this.InternalValue is not null;
+  public object? InternalValue { get; internal set; }
+
+  protected BaseArgument(string[]? commandNames = null, string? dictionaryKey = null, Action? function = null, string? helpMessage = null) {
+    this.CommandNames = commandNames ?? [];
+    this.DictionaryKey = dictionaryKey ?? string.Empty;
+    this.Function = function ?? (() => Log.Info(this.HelpMessage ?? string.Empty));
+    this.HelpMessage = helpMessage ?? string.Empty;
+    this.InternalValue = null;
+  }
+
+  private static string[] ConvertCommandNames(string[] commandNames) {
+    List<string> output = [];
+    foreach (var name in commandNames) {
+      output.Add("-" + name.ToPascalCase());
+      output.Add("/" + name.ToPascalCase());
+      output.Add("-" + name.ToLower()[0]);
+      output.Add("--" + name.ToSnakeCase());
+    }
+    return [..output];
+  }
+
+  public void CleanCommandNames(IEnumerable<string> otherCommands) {
+    List<string> tempCommandNames = [];
+    tempCommandNames.AddRange(this._commandNames.Where(x => !otherCommands.Contains(x)));
+    this._commandNames = [..tempCommandNames];
+  }
+
+  public string Run() {
+    this.Function?.Invoke();
+    return this.DictionaryKey;
   }
 }
 
-internal struct Argument {
-  internal List<string> CommandNames { get; set; }
-  internal string DictionaryKey { get; set; }
-  internal Action? Function { get; set; }
-  internal string HelpMessage { get; set; }
+public interface IArgument<out T> : IBaseArgument {
+  public T? Value { get; }
+}
 
-  internal readonly string Run() {
-    Function?.Invoke();
-    return DictionaryKey;
+internal abstract class Argument<T> : BaseArgument, IArgument<T> {
+  public T? Value => (T?)this.InternalValue;
+  protected Argument(string[]? commandNames = null, string? dictionaryKey = null, Action? function = null, string? helpMessage = null) : base(commandNames, dictionaryKey, function, helpMessage) {
   }
 }
 
-internal class Arguments {
-  private Argument HelpArgument = new() {
-    CommandNames = ["-h", "-help", "--help", "-?", "/?"],
-    DictionaryKey = "noHelp",
-    HelpMessage = "<Help Message>",
-  };
+internal sealed class ArgumentEmpty<T> : Argument<T> {
+  private ArgumentEmpty(T? value, string[]? commandNames = null, string? dictionaryKey = null, Action? function = null, string? helpMessage = null) : base(commandNames, dictionaryKey, function, helpMessage) {
+    this.InternalValue = value;
+  }
+  public static ArgumentEmpty<T> Empty => new(default, null, null, null, null);
+}
+
+internal class ArgumentSwitch : Argument<bool> {
+  public ArgumentSwitch(string[]? commandNames = null, string? dictionaryKey = null, Action? function = null, string? helpMessage = null) : base(commandNames, dictionaryKey, function, helpMessage) {
+  }
+}
+
+internal sealed class Arguments {
+  private readonly ArgumentSwitch _helpArgument = new(["help", "?"], "noHelp", null, "<Help Message>");
 
   private readonly IDictionary<string, string?> _passedArguments;
 
-  private List<Argument> PredefinedArguments { get; }
+  private static Arguments? _instance;
 
-  internal Arguments(string[] args) {
-    _passedArguments = CommandLineArgumentsHelper.GetArgumentsDictionary(args);
-    HelpArgument.Function = () => Log.Info(HelpArgument.HelpMessage);
+  private List<IBaseArgument> PredefinedArguments { get; }
 
-    PredefinedArguments = [
-      HelpArgument,
-      new Argument() {
-        CommandNames = ["-q", "-quick", "--quick"],
-        DictionaryKey = "notQuick",
-        Function = null,
-        HelpMessage = "<Help Message>"
-      }
+  private Arguments(string[] args) {
+    this.PredefinedArguments = [
+      this._helpArgument,
+      new ArgumentSwitch(["quick"], "notQuick", null, "<Help Message>"),
+      new ArgumentSwitch(["as system"], "asSystem", null, "<Help Message>"),
+      new ArgumentSwitch(["as user"], "asSystem", null, "<Help Message>")
     ];
+    this.PredefinedArguments.ForEach(x => x.CleanCommandNames(this.PredefinedArguments.SelectMany(y => y.CommandNames)));
+    this._passedArguments = CommandLineArgumentsHelper.GetArgumentsDictionary(args);
+    this.MapArguments();
   }
 
-  internal string? Get(string key) {
-    if (this._passedArguments.TryGetValue(key, out string? value)) {
-      return value;
+  internal static void Init(string[] args) {
+    _instance ??= new Arguments(args);
+  }
+
+  private void MapArguments() {
+    foreach (var (key, value) in this._passedArguments) {
+      if (!this.PredefinedArguments.HasKey(key)) {
+        // TODO: Print error if the argument does not exist.
+        Log.Info($"Unknown argument {key}");
+        break;
+      }
     }
-    return null;
   }
 
-  internal string? GetString(string key) {
-    return this.Get(key);
-  }
-
-  internal int? GetInt(string key) {
-    if (CommandLineArgumentsHelper.TryGetIntArgFromDictionary(_passedArguments, key, out int value)) {
-      return value;
+  internal static IArgument<T> GetArgument<T>(string key) {
+    if (_instance?.PredefinedArguments.Exists(x => x.GetType().IsGenericTypeDefinition && x.GetType().GenericTypeArguments[0] == typeof(T) && x.DictionaryKey == key) != true) {
+      return ArgumentEmpty<T>.Empty;
     }
-    return null;
+    return (IArgument<T>)_instance.PredefinedArguments.First(x => x.GetType().IsGenericTypeDefinition && x.GetType().GenericTypeArguments[0] == typeof(T) && x.DictionaryKey == key);
   }
 
   internal bool this[string key] => this._passedArguments.ContainsKey(key);

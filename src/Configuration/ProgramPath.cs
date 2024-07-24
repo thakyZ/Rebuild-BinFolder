@@ -1,5 +1,4 @@
-﻿#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
 using Rebuild_BinFolder.Helpers;
@@ -47,7 +46,7 @@ public sealed partial class ProgramPath : IEquatable<ProgramPath> {
   /// <returns></returns>
   public bool EqualsRaw(string? str) {
     if (str is null) return false;
-    return str == RawFullName;
+    return str == this.RawFullName;
   }
 
   /// <summary>
@@ -57,7 +56,7 @@ public sealed partial class ProgramPath : IEquatable<ProgramPath> {
   /// <returns></returns>
   public bool Equals(string? str) {
     if (str is null) return false;
-    return str == FullName;
+    return str == this.FullName;
   }
 
   /// <summary>
@@ -67,7 +66,7 @@ public sealed partial class ProgramPath : IEquatable<ProgramPath> {
   /// <returns></returns>
   public bool Equals(ProgramPath? path) {
     if (path is null) return false;
-    return path.RawFullName == RawFullName && path.FullName == FullName;
+    return path.RawFullName == this.RawFullName && path.FullName == this.FullName;
   }
 
   /// <summary>
@@ -76,10 +75,13 @@ public sealed partial class ProgramPath : IEquatable<ProgramPath> {
   /// <param name="obj"></param>
   /// <returns></returns>
   public override bool Equals(object? obj) {
-    if (obj is null) return false;
-    if (obj is string str) if(Equals(str)) return true; else if (EqualsRaw(str))  return true;
-    if (obj is ProgramPath path) return Equals(path);
-    return false;
+    return obj switch {
+      null => false,
+      string str when this.Equals(str) => true,
+      string str when this.EqualsRaw(str) => true,
+      ProgramPath path => this.Equals(path),
+      _ => false
+    };
   }
 
   /// <summary>
@@ -87,7 +89,7 @@ public sealed partial class ProgramPath : IEquatable<ProgramPath> {
   /// </summary>
   /// <returns></returns>
   public override int GetHashCode() {
-    return HashCode.Combine(FullName.GetHashCode(), RawFullName.GetHashCode(), Exists.GetHashCode());
+    return HashCode.Combine(this.FullName.GetHashCode(), this.RawFullName.GetHashCode(), this.Exists.GetHashCode());
   }
 
   /// <summary>
@@ -115,15 +117,15 @@ public sealed partial class ProgramPath : IEquatable<ProgramPath> {
   /// TODO: Add method summary.
   /// </summary>
   /// <returns></returns>
-  internal string ToOSCompatibleString() => ConvertRawToOS(this._rawFullName);
+  internal string ToOsCompatibleString() => ConvertRawToOs(this._rawFullName);
 
   /// <inheritdoc/>
   public override string ToString() => this.FullName;
 
-  private static Regex CmdEnvironmentVariables = CmdEnvVarRegex();
-  private static Regex PwshEnvironmentVariables = PwshEnvVarRegex();
-  private static Regex VSCodeEnvironmentVariables = VSCodeEnvVarRegex();
-  private static Regex BashEnvironmentVariables = BashEnvVarRegex();
+  private static readonly Regex CmdEnvironmentVariables = CmdEnvVarRegex();
+  private static readonly Regex PwshEnvironmentVariables = PwshEnvVarRegex();
+  private static readonly Regex VSCodeEnvironmentVariables = VsCodeEnvVarRegex();
+  private static readonly Regex BashEnvironmentVariables = BashEnvVarRegex();
 
   /// <summary>
   /// TODO: Add method summary.
@@ -131,18 +133,20 @@ public sealed partial class ProgramPath : IEquatable<ProgramPath> {
   /// <param name="path"></param>
   /// <returns></returns>
   private static string ConvertCmd(string path) {
-    string output = path;
-    if (CmdEnvironmentVariables.IsMatch(output)) {
-      MatchCollection matches = CmdEnvironmentVariables.Matches(output);
-      foreach (GroupCollection match in matches.Select(x => x.Groups)) {
-        string? envVar = Environment.GetEnvironmentVariable(match[1].Value);
-        if (envVar is string sEnvVar) {
-          output = output.Replace(match[0].Value, sEnvVar);
-        } else if (!Services.IsConfigNull()) {
-          envVar = Config.GetEnvironmentVariable(match[1].Value);
-          if (envVar is string cEnvVar) {
-            output = output.Replace(match[0].Value, cEnvVar);
-          }
+    var output = path;
+    if (!CmdEnvironmentVariables.IsMatch(output)) {
+      return output;
+    }
+
+    MatchCollection matches = CmdEnvironmentVariables.Matches(output);
+    foreach (GroupCollection match in matches.Select(x => x.Groups)) {
+      var envVar = Environment.GetEnvironmentVariable(match[1].Value);
+      if (envVar is { } sEnvVar) {
+        output = output.Replace(match[0].Value, sEnvVar);
+      } else if (!Services.IsConfigNull()) {
+        envVar = Config.GetEnvironmentVariable(match[1].Value);
+        if (envVar is { } cEnvVar) {
+          output = output.Replace(match[0].Value, cEnvVar);
         }
       }
     }
@@ -155,16 +159,19 @@ public sealed partial class ProgramPath : IEquatable<ProgramPath> {
   /// <param name="path"></param>
   /// <param name="os"></param>
   /// <returns></returns>
-  private static string ConvertCmdToOS(string path, OSPlatform os) {
-    string output = path;
+  private static string ConvertCmdToOs(string path, OSPlatform os) {
+    var output = path;
     if (os == OSPlatform.Windows) {
       return path;
     }
-    if (CmdEnvironmentVariables.IsMatch(output)) {
-      MatchCollection matches = CmdEnvironmentVariables.Matches(output);
-      foreach (GroupCollection match in matches.Select(x => x.Groups)) {
-        output = output.Replace(match[0].Value, $"%{match[1].Value}%");
-      }
+
+    if (!CmdEnvironmentVariables.IsMatch(output)) {
+      return output;
+    }
+
+    MatchCollection matches = CmdEnvironmentVariables.Matches(output);
+    foreach (GroupCollection match in matches.Select(x => x.Groups)) {
+      output = output.Replace(match[0].Value, $"%{match[1].Value}%");
     }
     return output;
   }
@@ -175,18 +182,76 @@ public sealed partial class ProgramPath : IEquatable<ProgramPath> {
   /// <param name="path"></param>
   /// <returns></returns>
   private static string ConvertPwsh(string path) {
-    string output = path;
-    if (PwshEnvironmentVariables.IsMatch(output)) {
+    var output = path;
+    if (!PwshEnvironmentVariables.IsMatch(output)) {
+      return output;
+    }
+
+    MatchCollection matches = PwshEnvironmentVariables.Matches(output);
+    foreach (GroupCollection match in matches.Select(x => x.Groups)) {
+      var envVar = Environment.GetEnvironmentVariable(match[1].Value);
+      if (envVar is { } sEnvVar) {
+        output = output.Replace(match[0].Value, sEnvVar);
+      } else if (!Services.IsConfigNull()) {
+        envVar = Config.GetEnvironmentVariable(match[1].Value);
+        if (envVar is { } cEnvVar) {
+          output = output.Replace(match[0].Value, cEnvVar);
+        }
+      }
+    }
+    return output;
+  }
+
+  /// <summary>
+  /// TODO: Add method summary.
+  /// </summary>
+  /// <param name="path"></param>
+  /// <param name="os"></param>
+  /// <returns></returns>
+  private static string ConvertPwshToOs(string path, OSPlatform os) {
+    var output = path;
+    if (os == OSPlatform.Windows) {
+      if (!PwshEnvironmentVariables.IsMatch(output)) {
+        return output;
+      }
+
       MatchCollection matches = PwshEnvironmentVariables.Matches(output);
       foreach (GroupCollection match in matches.Select(x => x.Groups)) {
-        string? envVar = Environment.GetEnvironmentVariable(match[1].Value);
-        if (envVar is string sEnvVar) {
-          output = output.Replace(match[0].Value, sEnvVar);
-        } else if (!Services.IsConfigNull()) {
-          envVar = Config.GetEnvironmentVariable(match[1].Value);
-          if (envVar is string cEnvVar) {
-            output = output.Replace(match[0].Value, cEnvVar);
-          }
+        output = output.Replace(match[0].Value, $"%{match[1].Value}%");
+      }
+    } else {
+      if (!PwshEnvironmentVariables.IsMatch(output)) {
+        return output;
+      }
+
+      MatchCollection matches = PwshEnvironmentVariables.Matches(output);
+      foreach (GroupCollection match in matches.Select(x => x.Groups)) {
+        output = output.Replace(match[0].Value, $"${match[1].Value}");
+      }
+    }
+    return output;
+  }
+
+  /// <summary>
+  /// TODO: Add method summary.
+  /// </summary>
+  /// <param name="path"></param>
+  /// <returns></returns>
+  private static string ConvertVsCode(string path) {
+    var output = path;
+    if (!VSCodeEnvironmentVariables.IsMatch(output)) {
+      return output;
+    }
+
+    MatchCollection matches = VSCodeEnvironmentVariables.Matches(output);
+    foreach (GroupCollection match in matches.Select(x => x.Groups)) {
+      var envVar = Environment.GetEnvironmentVariable(match[1].Value);
+      if (envVar is { } sEnvVar) {
+        output = output.Replace(match[0].Value, sEnvVar);
+      } else if (!Services.IsConfigNull()) {
+        envVar = Config.GetEnvironmentVariable(match[1].Value);
+        if (envVar is { } cEnvVar) {
+          output = output.Replace(match[0].Value, cEnvVar);
         }
       }
     }
@@ -199,71 +264,25 @@ public sealed partial class ProgramPath : IEquatable<ProgramPath> {
   /// <param name="path"></param>
   /// <param name="os"></param>
   /// <returns></returns>
-  private static string ConvertPwshToOS(string path, OSPlatform os) {
-    string output = path;
+  private static string ConvertVsCodeToOs(string path, OSPlatform os) {
+    var output = path;
     if (os == OSPlatform.Windows) {
-      if (PwshEnvironmentVariables.IsMatch(output)) {
-        MatchCollection matches = PwshEnvironmentVariables.Matches(output);
-        foreach (GroupCollection match in matches.Select(x => x.Groups)) {
-          output = output.Replace(match[0].Value, $"%{match[1].Value}%");
-        }
+      if (!VSCodeEnvironmentVariables.IsMatch(output)) {
+        return output;
       }
-    } else {
-      if (PwshEnvironmentVariables.IsMatch(output)) {
-        MatchCollection matches = PwshEnvironmentVariables.Matches(output);
-        foreach (GroupCollection match in matches.Select(x => x.Groups)) {
-          output = output.Replace(match[0].Value, $"${match[1].Value}");
-        }
-      }
-    }
-    return output;
-  }
 
-  /// <summary>
-  /// TODO: Add method summary.
-  /// </summary>
-  /// <param name="path"></param>
-  /// <returns></returns>
-  private static string ConvertVSCode(string path) {
-    string output = path;
-    if (VSCodeEnvironmentVariables.IsMatch(output)) {
       MatchCollection matches = VSCodeEnvironmentVariables.Matches(output);
       foreach (GroupCollection match in matches.Select(x => x.Groups)) {
-        string? envVar = Environment.GetEnvironmentVariable(match[1].Value);
-        if (envVar is string sEnvVar) {
-          output = output.Replace(match[0].Value, sEnvVar);
-        } else if (!Services.IsConfigNull()) {
-          envVar = Config.GetEnvironmentVariable(match[1].Value);
-          if (envVar is string cEnvVar) {
-            output = output.Replace(match[0].Value, cEnvVar);
-          }
-        }
-      }
-    }
-    return output;
-  }
-
-  /// <summary>
-  /// TODO: Add method summary.
-  /// </summary>
-  /// <param name="path"></param>
-  /// <param name="os"></param>
-  /// <returns></returns>
-  private static string ConvertVSCodeToOS(string path, OSPlatform os) {
-    string output = path;
-    if (os == OSPlatform.Windows) {
-      if (VSCodeEnvironmentVariables.IsMatch(output)) {
-        MatchCollection matches = VSCodeEnvironmentVariables.Matches(output);
-        foreach (GroupCollection match in matches.Select(x => x.Groups)) {
-          output = output.Replace(match[0].Value, $"%{match[1].Value}%");
-        }
+        output = output.Replace(match[0].Value, $"%{match[1].Value}%");
       }
     } else {
-      if (VSCodeEnvironmentVariables.IsMatch(output)) {
-        MatchCollection matches = VSCodeEnvironmentVariables.Matches(output);
-        foreach (GroupCollection match in matches.Select(x => x.Groups)) {
-          output = output.Replace(match[0].Value, $"${match[1].Value}");
-        }
+      if (!VSCodeEnvironmentVariables.IsMatch(output)) {
+        return output;
+      }
+
+      MatchCollection matches = VSCodeEnvironmentVariables.Matches(output);
+      foreach (GroupCollection match in matches.Select(x => x.Groups)) {
+        output = output.Replace(match[0].Value, $"${match[1].Value}");
       }
     }
     return output;
@@ -275,18 +294,20 @@ public sealed partial class ProgramPath : IEquatable<ProgramPath> {
   /// <param name="path"></param>
   /// <returns></returns>
   private static string ConvertBash(string path) {
-    string output = path;
-    if (BashEnvironmentVariables.IsMatch(output)) {
-      MatchCollection matches = BashEnvironmentVariables.Matches(output);
-      foreach (GroupCollection match in matches.Select(x => x.Groups)) {
-        string? envVar = Environment.GetEnvironmentVariable(match[1].Value);
-        if (envVar is string sEnvVar) {
-          output = output.Replace(match[0].Value, sEnvVar);
-        } else if (!Services.IsConfigNull()) {
-          envVar = Config.GetEnvironmentVariable(match[1].Value);
-          if (envVar is string cEnvVar) {
-            output = output.Replace(match[0].Value, cEnvVar);
-          }
+    var output = path;
+    if (!BashEnvironmentVariables.IsMatch(output)) {
+      return output;
+    }
+
+    MatchCollection matches = BashEnvironmentVariables.Matches(output);
+    foreach (GroupCollection match in matches.Select(x => x.Groups)) {
+      var envVar = Environment.GetEnvironmentVariable(match[1].Value);
+      if (envVar is { } sEnvVar) {
+        output = output.Replace(match[0].Value, sEnvVar);
+      } else if (!Services.IsConfigNull()) {
+        envVar = Config.GetEnvironmentVariable(match[1].Value);
+        if (envVar is { } cEnvVar) {
+          output = output.Replace(match[0].Value, cEnvVar);
         }
       }
     }
@@ -299,16 +320,19 @@ public sealed partial class ProgramPath : IEquatable<ProgramPath> {
   /// <param name="path"></param>
   /// <param name="os"></param>
   /// <returns></returns>
-  private static string ConvertBashToOS(string path, OSPlatform os) {
-    string output = path;
+  private static string ConvertBashToOs(string path, OSPlatform os) {
+    var output = path;
     if (os != OSPlatform.Windows) {
       return path;
     }
-    if (BashEnvironmentVariables.IsMatch(output)) {
-      MatchCollection matches = BashEnvironmentVariables.Matches(output);
-      foreach (GroupCollection match in matches.Select(x => x.Groups)) {
-        output = output.Replace(match[0].Value, $"%{match[1].Value}%");
-      }
+
+    if (!BashEnvironmentVariables.IsMatch(output)) {
+      return output;
+    }
+
+    MatchCollection matches = BashEnvironmentVariables.Matches(output);
+    foreach (GroupCollection match in matches.Select(x => x.Groups)) {
+      output = output.Replace(match[0].Value, $"%{match[1].Value}%");
     }
     return output;
   }
@@ -319,16 +343,14 @@ public sealed partial class ProgramPath : IEquatable<ProgramPath> {
   /// <param name="path"></param>
   /// <returns></returns>
   private static string Normalize(string path) {
-    string output = path;
+    var output = path;
     output = ConvertCmd(output);
     output = ConvertPwsh(output);
-    output = ConvertVSCode(output);
+    output = ConvertVsCode(output);
     output = ConvertBash(output);
-    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-      output = output.Replace("\\\\", "\\").Replace("/", "\\");
-    } else {
-      output = output.Replace("\\\\", "\\").Replace("\\", "/");
-    }
+    output = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+      ? output.Replace(@"\\", "\\").Replace("/", "\\")
+      : output.Replace(@"\\", "\\").Replace("\\", "/");
     return output;
   }
 
@@ -337,22 +359,21 @@ public sealed partial class ProgramPath : IEquatable<ProgramPath> {
   /// </summary>
   /// <param name="path"></param>
   /// <returns></returns>
-  private static string ConvertRawToOS(string path) {
-    string output = path;
+  private static string ConvertRawToOs(string path) {
+    var output = path;
     if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-      output = ConvertCmdToOS(output, OSPlatform.Windows);
-      output = ConvertPwshToOS(output, OSPlatform.Windows);
-      output = ConvertVSCodeToOS(output, OSPlatform.Windows);
-      output = ConvertBashToOS(output, OSPlatform.Windows);
-      output = output.Replace("\\\\", "\\").Replace("/", "\\");
+      output = ConvertCmdToOs(output, OSPlatform.Windows);
+      output = ConvertPwshToOs(output, OSPlatform.Windows);
+      output = ConvertVsCodeToOs(output, OSPlatform.Windows);
+      output = ConvertBashToOs(output, OSPlatform.Windows);
+      return output.Replace(@"\\", "\\").Replace("/", "\\");
     } else {
-      output = ConvertCmdToOS(output, OSPlatform.Linux);
-      output = ConvertPwshToOS(output, OSPlatform.Linux);
-      output = ConvertVSCodeToOS(output, OSPlatform.Linux);
-      output = ConvertBashToOS(output, OSPlatform.Linux);
-      output = output.Replace("\\\\", "\\").Replace("\\", "/");
+      output = ConvertCmdToOs(output, OSPlatform.Linux);
+      output = ConvertPwshToOs(output, OSPlatform.Linux);
+      output = ConvertVsCodeToOs(output, OSPlatform.Linux);
+      output = ConvertBashToOs(output, OSPlatform.Linux);
+      return output.Replace(@"\\", "\\").Replace("\\", "/");
     }
-    return output;
   }
 
   [GeneratedRegex(@"%([^%]+)%")]
@@ -362,7 +383,7 @@ public sealed partial class ProgramPath : IEquatable<ProgramPath> {
   private static partial Regex PwshEnvVarRegex();
 
   [GeneratedRegex(@"\$\{env:([^\}]+)\}")]
-  private static partial Regex VSCodeEnvVarRegex();
+  private static partial Regex VsCodeEnvVarRegex();
 
   [GeneratedRegex(@"\$([\w\d_]+)")]
   private static partial Regex BashEnvVarRegex();

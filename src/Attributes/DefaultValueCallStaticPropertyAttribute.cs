@@ -12,9 +12,18 @@ internal class DefaultValueCallStaticPropertyAttribute : DefaultValueAttribute {
   public string Property { get; }
 
   public DefaultValueCallStaticPropertyAttribute(Type type, string property) : base(null) {
-    Type = type;
-    Property = property;
+    this.Type = type;
+    this.Property = property;
   }
 
-  public override object? Value => Type.GetProperty(Property, BindingFlags.Public | BindingFlags.Static)?.GetMethod?.Invoke(null, null);
+  public override object? Value {
+    get {
+      try {
+        return this.Type.GetProperty(this.Property, BindingFlags.Public | BindingFlags.Static)?.GetMethod?.Invoke(null, null);
+      } catch (Exception e) {
+        Log.Error(e, $"Failed to get property {this.Property} of type {this.Type.FullName}");
+        return null;
+      }
+    }
+  }
 }

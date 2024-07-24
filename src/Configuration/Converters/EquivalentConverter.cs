@@ -24,11 +24,8 @@ internal class EquivalentConverter : JsonConverter<List<Equivalent>> {
         currentTokenType = reader.TokenType;
       }
     }
-    if (output.Count == 0) {
-      if (existingValue is not null && existingValue.Count > 0) {
-        return existingValue;
-      }
-      return output;
+    if (output.Count == 0 && existingValue?.Count > 0) {
+      return existingValue;
     }
     return output;
   }

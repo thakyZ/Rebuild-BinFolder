@@ -35,7 +35,7 @@ public class AuxName {
   /// </summary>
   internal static AuxName DefaultSystem {
     get {
-      return new(Constants.Default.SystemProgramsDirectory, ProgramPath.DefaultSystem);
+      return new AuxName(Constants.Default.SystemProgramsDirectory, ProgramPath.DefaultSystem);
     }
   }
 
@@ -44,7 +44,7 @@ public class AuxName {
   /// </summary>
   internal static AuxName DefaultUser {
     get {
-      return new(Constants.Default.UserProgramsDirectory, ProgramPath.DefaultUser);
+      return new AuxName(Constants.Default.UserProgramsDirectory, ProgramPath.DefaultUser);
     }
   }
 }

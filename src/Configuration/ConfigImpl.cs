@@ -30,7 +30,7 @@ public partial class Config {
   /// <param name="configPath"></param>
   /// <returns></returns>
   private static Config CreateDefault(string configPath) {
-    Config config = new Config() {
+    var config = new Config {
       UserConfigs = [
         UserConfig.Empty
       ],
@@ -45,7 +45,7 @@ public partial class Config {
   /// TODO: Add method summary.
   /// </summary>
   /// <returns></returns>
-  private static string? GetCurrentUserSID() {
+  private static string? GetCurrentUserSsid() {
     try {
       return WindowsIdentity.GetCurrent().Owner!.ToString();
     } catch (Exception exception) {
@@ -59,7 +59,7 @@ public partial class Config {
   /// </summary>
   /// <returns></returns>
   internal UserConfig? GetCurrentUserConfig() {
-    return GetUserConfigBySID();
+    return this.GetUserConfigBySsid();
   }
 
   /// <summary>
@@ -67,16 +67,17 @@ public partial class Config {
   /// </summary>
   /// <param name="sid"></param>
   /// <returns></returns>
-  internal UserConfig? GetUserConfigBySID(string sid) {
+  internal UserConfig? GetUserConfigBySsid(string sid) {
     try {
-      var output = UserConfigs.Find(x => x.Info.SID == sid);
-      if (output is null) {
-        Log.Error($"UserConfig with SID, {sid}, not found... Creating blank.");
-        var blank = UserConfig.Empty;
-        UserConfigs.Add(blank);
-        return blank;
+      UserConfig? output = this.UserConfigs.Find(x => x.Info.SID == sid);
+      if (output is not null) {
+        return output;
       }
-      return output;
+
+      Log.Error($"UserConfig with SID, {sid}, not found... Creating blank.");
+      UserConfig blank = UserConfig.Empty;
+      this.UserConfigs.Add(blank);
+      return blank;
     } catch (Exception exception) {
       Log.Error(exception, $"Failed to get User Config with SID, {sid}.");
       return null;
@@ -88,14 +89,15 @@ public partial class Config {
   /// </summary>
   /// <returns></returns>
   /// <exception cref="UserConfigException"></exception>
-  internal UserConfig? GetUserConfigBySID() {
+  internal UserConfig? GetUserConfigBySsid() {
     try {
-      var output = UserConfigs.Find(x => x.Info.SID == CurrentUserSID);
-      if (output is null) {
-        Log.Error($"UserConfig with SID, {CurrentUserSID}, not found... Creating blank.");
-        throw new UserConfigException(CurrentUserSID, $"UserConfig with SID, {CurrentUserSID}, not found... Creating blank.");
+      UserConfig? output = this.UserConfigs.Find(x => x.Info.SID == CurrentUserSID);
+      if (output is not null) {
+        return output;
       }
-      return output;
+
+      Log.Error($"UserConfig with SID, {CurrentUserSID}, not found... Creating blank.");
+      throw new UserConfigException(CurrentUserSID, $"UserConfig with SID, {CurrentUserSID}, not found... Creating blank.");
     } catch (Exception exception) {
       Log.Error(exception, $"Failed to get User Config with SID, {CurrentUserSID}.");
       return null;
@@ -125,17 +127,15 @@ public partial class Config {
     Config? config = null;
 
     if (!File.Exists(configPath)) {
-      Console.WriteLine(string.Format("Could not find configuration file at {0}", configPath));
+      Console.WriteLine($"Could not find configuration file at {configPath}");
       Console.WriteLine("Creating default configuration file");
       return CreateDefault(configPath);
     }
 
     try {
-      using (StreamReader reader = File.OpenText(configPath)) {
-        using (JsonReader jsonReader = new JsonTextReader(reader)) {
-          config = _serializer.Deserialize<Config>(jsonReader);
-        }
-      }
+      using StreamReader reader = File.OpenText(configPath);
+      using JsonReader jsonReader = new JsonTextReader(reader);
+      config = _serializer.Deserialize<Config>(jsonReader);
     } catch (Exception exception) {
       if (config is null) {
         Log.Error(exception, "Failed to load config. It has returned null.");
@@ -169,16 +169,13 @@ public partial class Config {
       throw;
     }
 
-    using (StringWriter s_writer = new StringWriter(new StringBuilder()))
-
+    using var sWriter = new StringWriter(new StringBuilder());
     try {
-      using (TextWriter textWriter = File.CreateText(configPath)) {
-        using (JsonWriter jsonWriter = new JsonTextWriter(textWriter)) {
-          _serializer.Serialize(jsonWriter, config, config.GetType());
-        }
-      }
+      using TextWriter textWriter = File.CreateText(configPath);
+      using JsonWriter jsonWriter = new JsonTextWriter(textWriter);
+      _serializer.Serialize(jsonWriter, config, config.GetType());
     } catch (Exception exception) {
-      Log.Error(exception, string.Format("Failed to write configuration to file: {0}", configPath));
+      Log.Error(exception, $"Failed to write configuration to file: {configPath}");
       throw;
     }
   }
@@ -197,12 +194,16 @@ public partial class Config {
   internal void SaveConfig() => SaveConfig(_configPath);
 
   internal static string? GetEnvironmentVariable(string value) {
-    if (!Services.IsConfigNull() && Services.Config is Config Config) {
-      if (Config.GetCurrentUserConfig() is UserConfig UserConfig && UserConfig.CustomEnvironmentVariables is List<CustomEnvironmentVar> uList && uList.Exists(x => x.Name == value)) {
-        return uList.First(x => x.Name == value).ValueSingle;
-      } else if (Config.AdminConfig is AdminConfig AdminConfig && AdminConfig.CustomEnvironmentVariables is List<CustomEnvironmentVar> aList && aList.Exists(x => x.Name == value)) {
-        return aList.First(x => x.Name == value).ValueSingle;
-      }
+    if (Services.IsConfigNull() || Services.Config is not Config Config) {
+      return null;
+    }
+
+    if (Config.GetCurrentUserConfig() is { CustomEnvironmentVariables: { } uList } && uList.Exists(x => x.Name == value)) {
+      return uList.First(x => x.Name == value).ValueSingle;
+    }
+
+    if (Config.AdminConfig is { CustomEnvironmentVariables: { } aList } && aList.Exists(x => x.Name == value)) {
+      return aList.First(x => x.Name == value).ValueSingle;
     }
     return null;
   }

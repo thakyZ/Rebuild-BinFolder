@@ -2,7 +2,7 @@
 
 [AttributeUsage(AttributeTargets.Assembly)]
 public class AssemblyRepositoryNameAttribute : Attribute {
-  public string Value { get; private set; }
+  public string Value { get; }
 
   public AssemblyRepositoryNameAttribute(string value) {
     this.Value = value;

@@ -3,6 +3,7 @@
 using Rebuild_BinFolder.Configuration;
 using Rebuild_BinFolder.Exceptions;
 using Rebuild_BinFolder.HandlePaths;
+using Rebuild_BinFolder.Helpers;
 
 namespace Rebuild_BinFolder;
 
@@ -30,51 +31,48 @@ public class Program {
       Environment.Exit(1);
     }
 
-    var notQuick = !Services.Arguments["isQuick"];
+    var notQuick = !Arguments.GetArgument<bool>("isQuick").Value;
 
-    if (!Services.Arguments["noHelp"]) {
+    if (Arguments.GetArgument<bool>("noHelp").Value) {
+      return;
+    }
 
-      try {
-        PathVariable = RegHandler.GetPathVariable();
-        AuxiliaryPathVariable = RegHandler.GetAuxiliaryPathVariable();
-      } catch (Exception exception) {
-        Log.Error(exception, "Failed to get path variable.");
-        Environment.Exit(1);
+    try {
+      PathVariable = RegHandler.GetPathVariable();
+      AuxiliaryPathVariable = RegHandler.GetAuxiliaryPathVariable();
+    } catch (Exception exception) {
+      Log.Error(exception, "Failed to get path variable.");
+      Environment.Exit(1);
+    }
+
+    var handlePath = new Handler(PathVariable, AuxiliaryPathVariable);
+    (ReturnedData? admin, ReturnedData? user) = handlePath.Run();
+    if ((Services.RunState != Handler.RunState.User || Services.RunState == Handler.RunState.Both) && user is not null) {
+      Log.Changes("OldPath:", $"{user.OldPath.PathString}");
+      Log.Changes("NewPath:", $"{user.NewPath.PathString}");
+      if (user.NewPath?.AuxiliaryPath is not null) {
+        Log.Changes("AuxPath:", $"{user.NewPath.AuxiliaryPathString}");
+      } else if (user.NewPath is not null && user.NewPath.AuxiliaryPath is null) {
+        throw new HandlePathNullException($"Aux path {(user.NewPath.AuxiliaryPath == null ? "is null" : "is not null")}, {(RegHandler.IsAdministrator ? "is Administrator" : "is not Administrator")}");
       }
-
-      if (PathVariable is null) {
-        Log.Error("FullName variable returned null.");
-        Environment.Exit(1);
+      if (GetConfirmation(notQuick, Console.GetCursorPosition()) && user.NewPath?.PathString is not null) {
+        RegHandler.SetPathVariable(user.NewPath.PathString, user.NewPath.AuxiliaryPathString);
       }
-
-      var handlePath = new Handler(PathVariable, AuxiliaryPathVariable);
-      var (admin, user) = handlePath.Run();
-      if (!Services.Arguments["admin"] && user is ReturnedData UserPaths) {
-        Log.Changes("OldPath:", $"{UserPaths.OldPath.PathString}");
-        Log.Changes("NewPath:", $"{UserPaths.NewPath.PathString}");
-        if (UserPaths.OldPath.AuxiliaryPath is not null && UserPaths.NewPath?.AuxiliaryPath is not null) {
-          Log.Changes("AuxPath:", $"{UserPaths.NewPath.AuxiliaryPathString}");
-        } else if (UserPaths.NewPath is not null && UserPaths.NewPath.AuxiliaryPath is null) {
-          throw new HandlePathNullException($"Aux path {(UserPaths.NewPath.AuxiliaryPath == null ? "is null" : "is not null")}, {(RegHandler.IsAdministrator ? "is Administrator" : "is not Administrator")}");
+    }
+    // ReSharper disable once InvertIf
+    if ((Services.RunState == Handler.RunState.Admin || Services.RunState == Handler.RunState.Both) && admin is not null) {
+      Log.Changes("OldPath:", $"{admin.OldPath.PathString}");
+      Log.Changes("NewPath:", $"{admin.NewPath.PathString}");
+      if (admin.NewPath.PathString is not null) {
+        Log.Changes("AuxPath:", $"{admin.NewPath.AuxiliaryPathString}");
+        if (GetConfirmation(notQuick, Console.GetCursorPosition())) {
+          RegHandler.SetPathVariable(admin.NewPath.PathString, admin.NewPath.AuxiliaryPathString);
         }
-        if (GetConfirmation(notQuick, Console.GetCursorPosition()) && UserPaths.NewPath is not null && UserPaths.NewPath.PathString is not null) {
-          RegHandler.SetPathVariable(UserPaths.NewPath.PathString, UserPaths.NewPath.AuxiliaryPathString);
-        }
+      } else if (admin.NewPath.AuxiliaryPath is null) {
+        throw new HandlePathNullException($"Aux path {(admin.NewPath.AuxiliaryPath is null ? "is null" : "is not null")}, {(RegHandler.IsAdministrator ? "is Administrator" : "is not Administrator")}");
       }
-      if (Services.Arguments["admin"] && admin is ReturnedData AdminPaths) {
-        Log.Changes("OldPath:", $"{AdminPaths.OldPath.PathString}");
-        Log.Changes("NewPath:", $"{AdminPaths.NewPath.PathString}");
-        if (AdminPaths.OldPath.AuxiliaryPath is not null && AdminPaths.NewPath.AuxiliaryPath is not null && AdminPaths.NewPath.PathString is not null) {
-          Log.Changes("AuxPath:", $"{AdminPaths.NewPath.AuxiliaryPathString}");
-          if (GetConfirmation(notQuick, Console.GetCursorPosition())) {
-            RegHandler.SetPathVariable(AdminPaths.NewPath.PathString, AdminPaths.NewPath.AuxiliaryPathString);
-          }
-        } else if (AdminPaths.NewPath.AuxiliaryPath is null) {
-          throw new HandlePathNullException($"Aux path {(AdminPaths.NewPath.AuxiliaryPath is null ? "is null" : "is not null")}, {(RegHandler.IsAdministrator ? "is Administrator" : "is not Administrator")}");
-        }
-        if (GetConfirmation(notQuick, Console.GetCursorPosition()) && AdminPaths.NewPath.PathString is not null) {
-          RegHandler.SetPathVariable(AdminPaths.NewPath.PathString, AdminPaths.NewPath.AuxiliaryPathString);
-        }
+      if (GetConfirmation(notQuick, Console.GetCursorPosition()) && admin.NewPath.PathString is not null) {
+        RegHandler.SetPathVariable(admin.NewPath.PathString, admin.NewPath.AuxiliaryPathString);
       }
     }
   }
@@ -84,27 +82,29 @@ public class Program {
   private static bool GetConfirmation(bool check, (int left, int top) cursor) {
     var donePrompting = false;
     var confirmed = true;
-    if (check) {
-      while (!donePrompting) {
-        const string message = "Do you want to replace these variables? [Y/n] ";
+    if (!check) {
+      return confirmed;
+    }
 
+    while (!donePrompting) {
+      const string message = "Do you want to replace these variables? [Y/n] ";
+
+      Console.SetCursorPosition(cursor.left, cursor.top);
+      Console.Write(new string(' ', Console.WindowWidth - message.Length));
+      Console.SetCursorPosition(cursor.left, cursor.top);
+      Console.Write(message);
+      Console.SetCursorPosition(cursor.left + message.Length, cursor.top);
+
+      var read = Console.ReadLine() ?? " ";
+
+      if (read.Equals("Y", StringComparison.Ordinal)) {
+        donePrompting = true;
+        confirmed = true;
+      } else if (read.Equals("n", StringComparison.OrdinalIgnoreCase)) {
+        donePrompting = true;
+        confirmed = false;
+      } else {
         Console.SetCursorPosition(cursor.left, cursor.top);
-        Console.Write(new string(' ', Console.WindowWidth - message.Length));
-        Console.SetCursorPosition(cursor.left, cursor.top);
-        Console.Write(message);
-        Console.SetCursorPosition(cursor.left + message.Length, cursor.top);
-
-        string read = Console.ReadLine() ?? " ";
-
-        if (read.Equals("Y", StringComparison.Ordinal)) {
-          donePrompting = true;
-          confirmed = true;
-        } else if (read.Equals("n", StringComparison.OrdinalIgnoreCase)) {
-          donePrompting = true;
-          confirmed = false;
-        } else {
-          Console.SetCursorPosition(cursor.left, cursor.top);
-        }
       }
     }
     return confirmed;

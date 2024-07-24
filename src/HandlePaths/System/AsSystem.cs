@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -98,6 +99,7 @@ public partial class Handler {
     /// <param name="withDuplicates"></param>
     /// <param name="programs"></param>
     /// <returns></returns>
+    [SuppressMessage("Major Code Smell", "S127:\"for\" loop stop conditions should be invariant", Justification = "Unnecessary SonarLint Warning")]
     internal override List<string> LoopRemoveDuplicatesTwo(List<string> withDuplicates, List<ProgramPath> programs) {
       var withOutDuplicates = withDuplicates.Distinct().ToList();
 
@@ -118,20 +120,19 @@ public partial class Handler {
         withOutDuplicates = withOutDuplicates.Distinct().ToList();
       }
 
-      int index = 0;
-      while (index < withOutDuplicates.Count) {
+      for (int index = 0; index < withOutDuplicates.Count;) {
         var replacedValueOne = Services.Config.AdminConfig.Root.Path.FullName.Replace(@"\", @"\\");
 
-        if (Regex.IsMatch(withOutDuplicates[index], $"^{replacedValueOne}\\\\") || Regex.IsMatch(withOutDuplicates[index], $"^%{Constants.SystemProgramsDirectory}%")) {
+        if (Regex.IsMatch(withOutDuplicates[index], $@"^{replacedValueOne}\\") || Regex.IsMatch(withOutDuplicates[index], $"^%{Constants.SystemProgramsDirectory}%")) {
           withOutDuplicates.RemoveAt(index);
-          index = index - 1 < 0 ? 0 : index - 1;
+          index = Math.Max(0, index - 1);
         } else {
           foreach (ProgramPath program in programs) {
             var replacedValueTwo = program.FullName.Replace(@"\", @"\\");
 
             if (Regex.IsMatch(withOutDuplicates[index], replacedValueTwo)) {
               withOutDuplicates.RemoveAt(index);
-              index = index - 1 < 0 ? 0 : index - 1;
+              index = Math.Max(0, index - 1);
             }
           }
         }
@@ -150,14 +151,14 @@ public partial class Handler {
     /// <returns></returns>
     internal override List<string> RemoveDuplicates(List<string> path, List<ProgramPath> programs) {
       List<string> withDupes = path;
-      var woDupes = withDupes.Distinct().ToList();
+      List<string> woDupes = withDupes.Distinct().ToList();
 
       // #pragma warning disable S1481
-      var output1 = LoopRemoveDuplicatesOne(woDupes, programs);
+      List<string> cleanedDupes1 = this.LoopRemoveDuplicatesOne(woDupes, programs);
       // #pragma warning restore S1481
-      // var output2 = LoopRemoveDuplicatesTwo(woDupes, programs);
+      List<string> cleanedDupes2 = this.LoopRemoveDuplicatesTwo(cleanedDupes1, programs);
 
-      return output1;
+      return cleanedDupes2;
     }
 
     /// <summary>
@@ -166,19 +167,19 @@ public partial class Handler {
     /// <param name="programs"></param>
     /// <returns></returns>
     internal override List<string> DoFormatting(List<ProgramPath> programs) {
-      var _tempPath = new List<string>();
+      List<string> tempPath = [];
 
-      foreach (var program in programs.Select(x => x.FullName)) {
+      foreach (string program in programs.Select(x => x.FullName)) {
         if (VolumeRegex().IsMatch(program)) {
-          _tempPath.Add(program);
+          tempPath.Add(program);
           Log.Additions("Adding FullName: ", program);
         } else {
-          _tempPath.Add($"%{Constants.SystemProgramsDirectory}%\\{program}");
+          tempPath.Add($"%{Constants.SystemProgramsDirectory}%\\{program}");
           Log.Additions("Adding FullName: ", $"%{Constants.SystemProgramsDirectory}%\\{program}");
         }
       }
 
-      return _tempPath;
+      return tempPath;
     }
 
     /// <summary>
@@ -188,9 +189,9 @@ public partial class Handler {
     /// <param name="newAux"></param>
     /// <returns></returns>
     internal override List<string> UpdatePathTwo(List<string> path, List<string> newAux) {
-      _ = path.Remove($"%{Constants.SystemProgramsList}%");
+      path.Remove($"%{Constants.SystemProgramsList}%");
 
-      var updatedPath = UpdatePathOne(path);
+      List<string> updatedPath = this.UpdatePathOne(path);
 
       Log.Info("New FullName Removals: ");
       for (int i = 0; i < updatedPath.Count; i++) {
@@ -199,16 +200,18 @@ public partial class Handler {
           updatedPath.RemoveAt(i);
         } else {
           for (int j = 0; j < newAux.Count; j++) {
-            if (j < updatedPath.Count && i < newAux.Count && updatedPath[i] == newAux[j]) {
-              Log.Additions("Removing FullName: ", updatedPath[i]);
-              updatedPath.RemoveAt(i);
+            if (j >= updatedPath.Count || i >= newAux.Count || updatedPath[i] != newAux[j]) {
+              continue;
             }
+
+            Log.Additions("Removing FullName: ", updatedPath[i]);
+            updatedPath.RemoveAt(i);
           }
         }
       }
 
       Log.Info("New FullName Additions: ");
-      foreach (var programPath in Services.Config.AdminConfig.ForceInPath.Select(x => x.FullName)) {
+      foreach (string programPath in Services.Config.AdminConfig.ForceInPath.Select(x => x.FullName)) {
         if (VolumeRegex().IsMatch(programPath)) {
           updatedPath.Add(programPath);
           Log.Additions("Adding FullName: ", programPath);
@@ -224,12 +227,12 @@ public partial class Handler {
     }
 
     internal override List<string> UpdatePathOne(List<string> path) {
-      _ = path.Remove($"%{Constants.SystemProgramsList}%");
+      path.Remove($"%{Constants.SystemProgramsList}%");
 
-      var programs = Services.Config.AdminConfig.Programs;
-      var tempPath = RemoveDuplicates(path, programs);
+      List<ProgramPath> programs = Services.Config.AdminConfig.Programs;
+      List<string> tempPath = this.RemoveDuplicates(path, programs);
 
-      _ = tempPath.Remove($"%{Constants.SystemProgramsList}%");
+      tempPath.Remove($"%{Constants.SystemProgramsList}%");
 
       return tempPath;
     }

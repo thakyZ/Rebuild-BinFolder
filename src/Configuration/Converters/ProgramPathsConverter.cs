@@ -2,7 +2,7 @@
 
 namespace Rebuild_BinFolder.Configuration.Converters;
 internal class ProgramPathsConverter : JsonConverter<List<ProgramPath>> {
-  public override List<ProgramPath>? ReadJson(JsonReader reader, Type objectType, List<ProgramPath>? existingValue, bool hasExistingValue, JsonSerializer serializer) {
+  public override List<ProgramPath> ReadJson(JsonReader reader, Type objectType, List<ProgramPath>? existingValue, bool hasExistingValue, JsonSerializer serializer) {
     if (reader is JsonTextReader textReader) {
       return this.ReadJson(textReader, objectType, existingValue, hasExistingValue, serializer);
     }
@@ -10,12 +10,12 @@ internal class ProgramPathsConverter : JsonConverter<List<ProgramPath>> {
   }
 
   [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "No need for it to be static or instanced.")]
-  public List<ProgramPath>? ReadJson(JsonTextReader reader, Type objectType, List<ProgramPath>? existingValue, bool hasExistingValue, JsonSerializer serializer) {
+  public List<ProgramPath> ReadJson(JsonTextReader reader, Type _, List<ProgramPath>? existingValue, bool hasExistingValue, JsonSerializer __) {
     List<ProgramPath> output = [];
     if (reader.TokenType == JsonToken.StartArray) {
       while (reader.TokenType != JsonToken.EndArray) {
-        if (reader.TokenType == JsonToken.String && reader.Value is string val) {
-          output.Add(new(val));
+        if (reader is { TokenType: JsonToken.String, Value: string val }) {
+          output.Add(new ProgramPath(val));
         } else if (reader.TokenType != JsonToken.EndArray && reader.TokenType != JsonToken.StartArray) {
           throw new JsonException($"Invalid type. Expected String but got {reader.TokenType}. Position {reader.LineNumber}:{reader.LinePosition}");
         }
@@ -24,11 +24,8 @@ internal class ProgramPathsConverter : JsonConverter<List<ProgramPath>> {
         }
       }
     }
-    if (output.Count == 0) {
-      if (existingValue is not null && existingValue.Count > 0) {
-        return existingValue;
-      }
-      return output;
+    if (output.Count == 0 && hasExistingValue && existingValue?.Count > 0) {
+      return existingValue;
     }
     return output;
   }
@@ -36,7 +33,7 @@ internal class ProgramPathsConverter : JsonConverter<List<ProgramPath>> {
   public override void WriteJson(JsonWriter writer, List<ProgramPath>? values, JsonSerializer serializer) {
     writer.WriteStartArray();
     if (values is not null) {
-      foreach (var value in values) {
+      foreach (ProgramPath value in values) {
         writer.WriteValue(value.ToRawString());
       }
     }

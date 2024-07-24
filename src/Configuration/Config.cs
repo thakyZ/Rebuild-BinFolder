@@ -71,6 +71,6 @@ public partial class Config {
   public Config() {}
 
   static Config() {
-    CurrentUserSID = GetCurrentUserSID() ?? "unknown";
+    CurrentUserSID = GetCurrentUserSsid() ?? "unknown";
   }
 }

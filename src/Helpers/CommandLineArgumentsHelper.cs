@@ -5,8 +5,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
-namespace Microsoft.VisualStudio.TestPlatform.CoreUtilities.Helpers;
+namespace Rebuild_BinFolder.Helpers;
 
 /// <summary>
 /// Helper class for processing arguments passed to a process.
@@ -17,14 +18,14 @@ public static class CommandLineArgumentsHelper {
   /// </summary>
   /// <param name="args">Command line arguments. Ex: <c>{ "--port", "12312", "--parentprocessid", "2312", "--testsourcepath", "C:\temp\1.dll" }</c></param>
   /// <returns>Dictionary of arguments keys and values.</returns>
+  [SuppressMessage("Major Code Smell", "S127:\"for\" loop stop conditions should be invariant", Justification = "Unnecessary SonarLint Warning")]
   public static IDictionary<string, string?> GetArgumentsDictionary(string[]? args) {
     var argsDictionary = new Dictionary<string, string?>();
     if (args == null) {
       return argsDictionary;
     }
 
-    int i = 0;
-    while (i < args.Length) {
+    for (var i = 0; i < args.Length;) {
       if (args[i].StartsWith('-')) {
         if (i < args.Length - 1 && !args[i + 1].StartsWith('-')) {
           argsDictionary.Add(args[i], args[i + 1]);
@@ -59,15 +60,13 @@ public static class CommandLineArgumentsHelper {
   /// <returns>Value of the argument.</returns>
   /// <exception cref="ArgumentException">Thrown if value of an argument is not an integer.</exception>
   public static bool TryGetIntArgFromDictionary(IDictionary<string, string?> argsDictionary, string fullName, out int value) {
-    var found = argsDictionary.TryGetValue(fullName, out var optionValue);
-    if (!found) {
-      value = default;
-      return false;
+    if (argsDictionary.TryGetValue(fullName, out var optionValue)) {
+      return int.TryParse(optionValue, out value);
     }
 
-    return int.TryParse(optionValue, out value);
+    value = default;
+    return false;
   }
-
 
   /// <summary>
   /// Parse the value of an argument as a string.

@@ -1,5 +1,4 @@
-﻿#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-namespace Rebuild_BinFolder.Configuration;
+﻿namespace Rebuild_BinFolder.Configuration;
 
 public class Equivalent {
   /// <summary>
@@ -27,10 +26,10 @@ public class Equivalent {
   /// </summary>
   internal static List<Equivalent> Templates => [
     Template,
-    new("%LOCALAPPDATA%","<userDir>/AppData/Local"),
-    new("%USERPROFILE%","<userDir>"),
-    new("%HOME%","<userDir>"),
-    new("Progra~1","Program Files"),
-    new("Progra~2","Program Files (x86)")
+    new Equivalent("%LOCALAPPDATA%","<userDir>/AppData/Local"),
+    new Equivalent("%USERPROFILE%","<userDir>"),
+    new Equivalent("%HOME%","<userDir>"),
+    new Equivalent("Progra~1","Program Files"),
+    new Equivalent("Progra~2","Program Files (x86)")
   ];
 }

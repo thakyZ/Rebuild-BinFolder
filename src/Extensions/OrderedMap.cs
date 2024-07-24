@@ -1,5 +1,5 @@
 ﻿// Disabled because unused.
-/*
+#if xDEBUG
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -289,4 +289,4 @@ internal class OrderedMap<TKey, TValue> : OrderedDictionary, IEquatable<OrderedM
     base.OnDeserialization(sender);
   }
 }
-*/
+#endif

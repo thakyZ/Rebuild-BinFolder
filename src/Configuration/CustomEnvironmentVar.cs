@@ -1,5 +1,4 @@
-﻿#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 
 namespace Rebuild_BinFolder.Configuration;
 
@@ -20,9 +19,9 @@ public class CustomEnvironmentVar {
   public string ValueSingle {
     get {
       if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-        return string.Join(';', Value);
+        return string.Join(';', this.Value);
       } else {
-        return string.Join(':', Value);
+        return string.Join(':', this.Value);
       }
     }
   }
@@ -68,6 +67,6 @@ public class CustomEnvironmentVar {
   /// <param name="value"></param>
   public CustomEnvironmentVar(string name, IEnumerable<string?> value) {
     this.Name=name;
-    this.Value=[..value.Select(x => x is null ? "<error>" : x)];
+    this.Value=[..value.Select(x => x ?? "<error>")];
   }
 }

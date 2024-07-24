@@ -6,9 +6,9 @@ public class DefaultValueNewAttribute : DefaultValueAttribute {
   public object[] Args { get; }
 
   public DefaultValueNewAttribute(Type type, params object[] args) : base(null) {
-    Type = type;
-    Args = args;
+    this.Type = type;
+    this.Args = args;
   }
 
-  public override object? Value => Activator.CreateInstance(Type, Args);
+  public override object? Value => Activator.CreateInstance(this.Type, this.Args);
 }

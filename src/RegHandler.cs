@@ -12,22 +12,22 @@ namespace Rebuild_BinFolder;
 internal static class RegHandler {
   internal static bool IsAdministrator {
     get {
-      if (Services.RunState == Handler.RunState.Admin) {
-        var identity = WindowsIdentity.GetCurrent();
-        var principal = new WindowsPrincipal(identity);
-        return principal.IsInRole(WindowsBuiltInRole.Administrator);
-      } else {
+      if (Services.RunState != Handler.RunState.Admin) {
         return false;
       }
+
+      var identity = WindowsIdentity.GetCurrent();
+      var principal = new WindowsPrincipal(identity);
+      return principal.IsInRole(WindowsBuiltInRole.Administrator);
     }
   }
 
   internal static string GetPathVariable() {
     if (!IsAdministrator) {
       return Registry.CurrentUser.OpenSubKey(Constants.SubKey)?.GetValue("Path", "<NONE_MISSING>", RegistryValueOptions.DoNotExpandEnvironmentNames)?.ToString() ?? "<NONE_MISSING>";
-    } else {
-      return Registry.LocalMachine.OpenSubKey(Constants.SystemSubKeyPath)?.GetValue("Path", "<NONE_MISSING>", RegistryValueOptions.DoNotExpandEnvironmentNames)?.ToString() ?? "<NONE_MISSING>";
     }
+
+    return Registry.LocalMachine.OpenSubKey(Constants.SystemSubKeyPath)?.GetValue("Path", "<NONE_MISSING>", RegistryValueOptions.DoNotExpandEnvironmentNames)?.ToString() ?? "<NONE_MISSING>";
   }
 
   internal static void SetPathVariable(string newPath, string? auxPath = "") {
@@ -51,22 +51,20 @@ internal static class RegHandler {
 
   internal static Dictionary<string, string> GetStandardVariables() {
     Dictionary<string, string> output = [];
-    string[] keys = IsAdministrator
+    var keys = IsAdministrator
       ? Registry.LocalMachine.OpenSubKey(Constants.SystemSubKeyPath)?.GetValueNames() ?? []
       : Registry.CurrentUser.OpenSubKey(Constants.UserSubKeyPath)?.GetValueNames() ?? [];
 
-    foreach (string key in keys.ToList()) {
-      if (string.IsNullOrEmpty(key))
-        continue;
-
+    foreach (var key in keys.Where(key => !string.IsNullOrEmpty(key)))
+    {
       if (!IsAdministrator) {
-        string value = Registry.CurrentUser.OpenSubKey(Constants.UserSubKeyPath)?.GetValue(key, "<NONE_MISSING>", RegistryValueOptions.None)?.ToString() ?? "<NONE_MISSING>";
+        var value = Registry.CurrentUser.OpenSubKey(Constants.UserSubKeyPath)?.GetValue(key, "<NONE_MISSING>", RegistryValueOptions.None)?.ToString() ?? "<NONE_MISSING>";
 
         if (Path.IsPathFullyQualified(key) || Path.IsPathRooted(key)) {
           output.Add(key, value);
         }
       } else {
-        string value = Registry.LocalMachine.OpenSubKey(Constants.SystemSubKeyPath)?.GetValue(key, "<NONE_MISSING>", RegistryValueOptions.None)?.ToString() ?? "<NONE_MISSING>";
+        var value = Registry.LocalMachine.OpenSubKey(Constants.SystemSubKeyPath)?.GetValue(key, "<NONE_MISSING>", RegistryValueOptions.None)?.ToString() ?? "<NONE_MISSING>";
 
         if (Path.IsPathFullyQualified(key) || Path.IsPathRooted(key)) {
           output.Add(key, value);
@@ -79,22 +77,20 @@ internal static class RegHandler {
 
   internal static Dictionary<string, string> GetStandardVariablesRegex() {
     Dictionary<string, string> output = [];
-    string[] keys = IsAdministrator
+    var keys = IsAdministrator
       ? Registry.LocalMachine.OpenSubKey(Constants.SystemSubKeyPath)?.GetValueNames() ?? []
       : Registry.CurrentUser.OpenSubKey(Constants.UserSubKeyPath)?.GetValueNames() ?? [];
 
-    foreach (string key in keys.ToList()) {
-      if (string.IsNullOrEmpty(key))
-        continue;
-
+    foreach (var key in keys.Where(key => !string.IsNullOrEmpty(key)))
+    {
       if (!IsAdministrator) {
-        string value = Registry.CurrentUser.OpenSubKey(Constants.SubKey)?.GetValue(key, "<NONE_MISSING>", RegistryValueOptions.None)?.ToString() ?? "<NONE_MISSING>";
+        var value = Registry.CurrentUser.OpenSubKey(Constants.SubKey)?.GetValue(key, "<NONE_MISSING>", RegistryValueOptions.None)?.ToString() ?? "<NONE_MISSING>";
 
         if (Path.IsPathFullyQualified(key) || Path.IsPathRooted(key)) {
           output.Add(key, value);
         }
       } else {
-        string value = Registry.LocalMachine.OpenSubKey(Constants.SystemSubKeyPath)?.GetValue(key, "<NONE_MISSING>", RegistryValueOptions.None)?.ToString() ?? "<NONE_MISSING>";
+        var value = Registry.LocalMachine.OpenSubKey(Constants.SystemSubKeyPath)?.GetValue(key, "<NONE_MISSING>", RegistryValueOptions.None)?.ToString() ?? "<NONE_MISSING>";
 
         if (Path.IsPathFullyQualified(key) || Path.IsPathRooted(key)) {
           output.Add(key, value);
@@ -108,8 +104,8 @@ internal static class RegHandler {
   internal static string GetAuxiliaryPathVariable() {
     if (!IsAdministrator) {
       return Registry.CurrentUser.OpenSubKey(Constants.SubKey)?.GetValue(Constants.UserProgramsList, "<NONE_MISSING>", RegistryValueOptions.DoNotExpandEnvironmentNames)?.ToString() ?? "<NONE_MISSING>";
-    } else {
-      return Registry.LocalMachine.OpenSubKey(Constants.SystemSubKeyPath)?.GetValue(Constants.SystemProgramsList, "<NONE_MISSING>", RegistryValueOptions.DoNotExpandEnvironmentNames)?.ToString() ?? "<NONE_MISSING>";
     }
+
+    return Registry.LocalMachine.OpenSubKey(Constants.SystemSubKeyPath)?.GetValue(Constants.SystemProgramsList, "<NONE_MISSING>", RegistryValueOptions.DoNotExpandEnvironmentNames)?.ToString() ?? "<NONE_MISSING>";
   }
 }

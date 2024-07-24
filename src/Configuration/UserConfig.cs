@@ -1,5 +1,6 @@
 ﻿#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Serialization;
 
 using Newtonsoft.Json;
@@ -61,23 +62,26 @@ public class UserConfig {
   /// </summary>
   internal static UserConfig Empty => new();
 
-  public UserConfig() {}
-
+  [SuppressMessage("Roslynator", "RCS1169:Make field read-only", Justification = "Json.NET applies value via reflection.")]
   [JsonExtensionData]
   private IDictionary<string, JToken> _additionalData;
 
   [OnDeserialized]
   private void OnDeserialized(StreamingContext context) {
-    JObject custom = (JObject)_additionalData["custom_environment_variables"];
+    var custom = (JObject)this._additionalData["custom_environment_variables"];
     if (!custom.HasValues) return;
-    foreach ((string key, JToken? value) in custom) {
+    foreach ((var key, JToken? value) in custom) {
       if (value is null) continue;
-      if (value.Type == JTokenType.Array) {
-        CustomEnvironmentVariables.Add(new(key, value.Values<string>()));
-      } else if (value.Type == JTokenType.String) {
-        CustomEnvironmentVariables.Add(new(key, (string?)value));
-      } else {
-        throw new JsonException($"Invalid type of JToken at key {key}, expected Array or String, got {value.Type}");
+      // ReSharper disable once SwitchStatementHandlesSomeKnownEnumValuesWithDefault
+      switch (value.Type) {
+        case JTokenType.Array:
+          this.CustomEnvironmentVariables.Add(new CustomEnvironmentVar(key, value.Values<string>()));
+          break;
+        case JTokenType.String:
+          this.CustomEnvironmentVariables.Add(new CustomEnvironmentVar(key, (string?)value));
+          break;
+        default:
+          throw new JsonException($"Invalid type of JToken at key {key}, expected Array or String, got {value.Type}");
       }
     }
   }

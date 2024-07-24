@@ -11,6 +11,6 @@ internal static class ListEquivalentExtensions {
     return [..list.Select(x => x.ToRawString())];
   }
   public static List<string> ToOSCompatibleList(this List<ProgramPath> list) {
-    return [..list.Select(x => x.ToOSCompatibleString())];
+    return [..list.Select(x => x.ToOsCompatibleString())];
   }
 }

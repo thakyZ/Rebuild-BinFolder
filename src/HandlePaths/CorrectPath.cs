@@ -29,22 +29,17 @@ internal static class CorrectPath {
     List<ProgramPath> systemPathsListClone = [];
     List<ProgramPath> systemProgramListClone = [];
 
-    foreach (var path in systemPaths.Path) {
-      systemPathsListClone.Add(path);
-    }
+    systemPathsListClone.AddRange(systemPaths.Path);
 
-    foreach (var path in systemProgramList.AuxiliaryPath) {
-      systemProgramListClone.Add(path);
-    }
-
+    systemProgramListClone.AddRange(systemProgramList.AuxiliaryPath);
 
     List<(int index, ProgramPath path)> toRemove = [];
 
-    foreach ((int index, ProgramPath path) in systemPathsListClone.Select((x, i) => (i, x))) {
-      if (systemPathsListClone.Count((x) => x == path) > 1) {
+    foreach ((var index, ProgramPath path) in systemPathsListClone.Select((x, i) => (i, x))) {
+      if (systemPathsListClone.Count(x => x.Equals(path)) > 1) {
         Log.Debug($"Duplicate:                {path}");
 
-        if (toRemove.Exists(x => x.path == path)) {
+        if (toRemove.Exists(x => x.path.Equals(path))) {
           toRemove.Add((index, path));
         }
       }
@@ -52,39 +47,40 @@ internal static class CorrectPath {
       if (!Directory.Exists(path.FullName)) {
         Log.Debug($"Non-Existent:             {path}");
 
-        if (!toRemove.TrueForAll(x => x.path == path)) {
+        if (!toRemove.TrueForAll(x => x.path.Equals(path))) {
           toRemove.Add((index, path));
         }
       }
 
-      if (systemProgramListClone.Exists(x => x == path)) {
-        Log.Debug($"Duplicate in APROG_LIST: {path}");
+      if (!systemProgramListClone.Exists(x => x.Equals(path))) {
+        continue;
+      }
 
-        if (!toRemove.TrueForAll(x => x.path == path)) {
-          toRemove.Add((index, path));
-        }
+      Log.Debug($"Duplicate in APROG_LIST: {path}");
+
+      if (!toRemove.TrueForAll(x => x.path.Equals(path))) {
+        toRemove.Add((index, path));
       }
     }
 
-    var newToRemove = toRemove.OrderBy(x => x.index);
+    IOrderedEnumerable<(int index, ProgramPath path)> newToRemove = toRemove.OrderBy(x => x.index);
 
-    int oldOffsetIndex = 0;
+    var oldOffsetIndex = 0;
 
-    int limit = toRemove.Count * -1;
+    var limit = toRemove.Count * -1;
 
-    foreach ((int index, ProgramPath path) in newToRemove) {
-
+    foreach (var path in newToRemove.Select(x => x.path.FullName)) {
       if (oldOffsetIndex < limit) {
         throw new ArithmeticException($"Variable oldOffsetIndex didn't get properly set outside loop, is at: {oldOffsetIndex}");
       }
 
-      Log.Verbose($"{path.FullName} {path.FullName} {oldOffsetIndex}");
-      oldOffsetIndex -= 1;
+      Log.Verbose($"{path} {path} {oldOffsetIndex}");
+      oldOffsetIndex--;
     }
 
-    int offsetIndex = 0;
+    var offsetIndex = 0;
 
-    foreach ((int index, ProgramPath path) in newToRemove) {
+    foreach (var index in newToRemove.Select(x => x.index)) {
       if (offsetIndex < limit) {
         throw new ArithmeticException($"Variable offsetIndex didn't get properly set outside loop, is at: {offsetIndex}");
       }
@@ -92,7 +88,7 @@ internal static class CorrectPath {
       var offset = index + offsetIndex;
       Log.Verbose($"Removing at index {offset}/{systemPathsListClone.Count} (Offset by {offsetIndex})");
       systemPathsListClone.RemoveAt(offset);
-      offsetIndex -= 1;
+      offsetIndex--;
     }
 
     DisposeDictionaries(toRemove, newToRemove, oldOffsetIndex, offsetIndex);
@@ -104,10 +100,11 @@ internal static class CorrectPath {
 
   private static void DisposeDictionaries([In] params object[] items) {
     foreach (var item in items) {
-      if (item is IDictionary dictionary) {
-        foreach (var index in dictionary) {
-          dictionary.Remove(index);
-        }
+      if (item is not IDictionary dictionary) {
+        continue;
+      }
+      foreach (var index in dictionary) {
+        dictionary.Remove(index);
       }
     }
   }
