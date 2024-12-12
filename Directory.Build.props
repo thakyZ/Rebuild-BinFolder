@@ -1,0 +1,93 @@
+<Project>
+
+  <PropertyGroup Label="Assembly Info" Condition="'$(RootNamespace)'=='InitializeBinFolder.PowerShell' OR '$(RootNamespace)'=='InitializeBinFolder.Standalone'">
+    <Version>1.0.0.0</Version>
+    <Authors>Neko Boi Nick</Authors>
+    <Company>Neko Gaming</Company>
+    <Description></Description>
+    <RepositoryOwner>thakyZ</RepositoryOwner>
+    <RepositoryName>InitializeBinFolder</RepositoryName>
+    <PackageProjectUrl>https://github.com/$(RepositoryOwner)/$(RepositoryName)</PackageProjectUrl>
+    <Copyright>MIT</Copyright>
+    <Title>Initialize-BinFolder</Title>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);AD0001</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Target">
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <Platforms>x64</Platforms>
+    <Configurations>Release;Debug</Configurations>
+    <Nullable>enable</Nullable>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <SupportedOSPlatformVersion>7.0</SupportedOSPlatformVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Build">
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <ErrorReport>Prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <OutputPath>$(SolutionDir)bin\$(Configuration)\</OutputPath>
+    <BaseOutputPath>$(OutputPath)</BaseOutputPath>
+    <OutDir>$(OutputPath)</OutDir>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Build Info">
+    <AssemblyTitle>$(Title)</AssemblyTitle>
+    <AssemblyName>$(Title)</AssemblyName>
+    <Product>$(RootNamespace)</Product>
+    <PluginVersion>$(Version)</PluginVersion>
+    <FileVersion>$(Version)</FileVersion>
+    <AssemblyVersion>$(Version)</AssemblyVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Feature">
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <ProduceReferenceAssembly>true</ProduceReferenceAssembly>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <Optimize>true</Optimize>
+    <DefineConstants>TRACE</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+    <Optimize>false</Optimize>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(RootNamespace)'=='InitializeBinFolder.PowerShell' OR '$(RootNamespace)'=='InitializeBinFolder.Standalone'">
+    <ProjectReference Include="$(SolutionDir)InitializeBinFolder.Common\InitializeBinFolder.Common.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="Exists('$(AppData)\MSRuleSets\sonarlint.editorconfig')">
+    <None Include="$(AppData)\MSRuleSets\sonarlint.editorconfig" Link="sonarlint.editorconfig" />
+    <EditorConfigFiles Remove="$(AppData)\MSRuleSets\sonarlint.editorconfig" />
+  </ItemGroup>
+
+  <ItemGroup Condition="Exists('$(AppData)\MSRuleSets\roslynator.editorconfig')">
+    <None Include="$(AppData)\MSRuleSets\roslynator.editorconfig" Link="roslynator.editorconfig" />
+    <EditorConfigFiles Remove="$(AppData)\MSRuleSets\roslynator.editorconfig" />
+  </ItemGroup>
+
+  <Target Name="CleanOutDir" AfterTargets="Build">
+    <ItemGroup>
+      <DeleteAssemblies Include="$(TargetDir)$(AssemblyName).deps.json" />
+    </ItemGroup>
+    <Message Text="Deleting @(DeleteAssemblies)" Importance="high" />
+    <Delete Files="@(DeleteAssemblies)" />
+    <RemoveDir Directories="$(TargetDir)\ref\" />
+  </Target>
+
+</Project>

@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup Label="Assembly Info">
+    <RootNamespace>InitializeBinFolder.PowerShell</RootNamespace>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Build">
+    <OutputType>Library</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Management.Automation" Version="7.4.6" />
+  </ItemGroup>
+
+  <Target Name="CleanOutDir" AfterTargets="Build">
+    <ItemGroup>
+      <DeleteAssemblies Include="$(TargetDir)$(AssemblyName).deps.json" />
+    </ItemGroup>
+    <Message Text="Deleting @(DeleteAssemblies)" Importance="high" />
+    <Delete Files="@(DeleteAssemblies)" />
+    <RemoveDir Directories="$(TargetDir)\ref\" />
+  </Target>
+
+</Project>
